@@ -342,6 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('btn-tick-badr').addEventListener('click', () => window.store.toggleBadr());
     document.getElementById('btn-tick-ratib').addEventListener('click', () => window.store.toggleRatib());
+    document.getElementById('btn-tick-healing').addEventListener('click', () => window.store.toggleHealingDua());
     
 
     document.getElementById('btn-toggle-translation').addEventListener('click', (e) => {
@@ -439,6 +440,19 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             tickBadr.classList.remove('completed');
             cardBadr.classList.remove('completed');
+        }
+
+        // Healing Dua
+        const tickHealing = document.getElementById('btn-tick-healing');
+        const cardHealing = document.getElementById('healing-dua-card');
+        if (tickHealing && cardHealing) {
+            if (data.today.healingDua) {
+                tickHealing.classList.add('completed');
+                cardHealing.classList.add('completed');
+            } else {
+                tickHealing.classList.remove('completed');
+                cardHealing.classList.remove('completed');
+            }
         }
 
         // Qur'an
@@ -556,7 +570,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateOverallProgress() {
         const data = window.store.data;
         const customTasks = data.today.customTasks || [];
-        let totalItems = 5 + 1 + 5 + 2 + 2 + 1 + customTasks.length + 1; // +1 for Qur'an reading
+        let totalItems = 5 + 1 + 5 + 2 + 1 + 2 + 1 + customTasks.length + 1; // +1 for Healing Dua, +1 for Qur'an reading
         let completedItems = 0;
 
         const allPrayers = prayers.every(p => data.today.prayers[p].completed);
@@ -573,6 +587,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const allDhikr = data.today.dhikr.morning >= 11 && data.today.dhikr.evening >= 11;
         checkSectionCompletion('badge-dhikr', allDhikr);
 
+        checkSectionCompletion('badge-healing', data.today.healingDua);
+
         const allAyah = data.today.protectionAyah.fajr >= 3 && data.today.protectionAyah.maghrib >= 3;
         checkSectionCompletion('badge-ayah', allAyah);
 
@@ -587,6 +603,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.today.quranPages >= 7) completedItems++;
         if (data.today.dhikr.morning >= 11) completedItems++;
         if (data.today.dhikr.evening >= 11) completedItems++;
+        if (data.today.healingDua) completedItems++;
         if (data.today.protectionAyah.fajr >= 3) completedItems++;
         if (data.today.protectionAyah.maghrib >= 3) completedItems++;
         if (data.today.ratib) completedItems++;
