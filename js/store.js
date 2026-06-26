@@ -38,9 +38,9 @@ const defaultState = {
         },
         dhikr: {
             morning: 0,
-            evening: 0
+            evening: 0,
+            healing: 0
         },
-        healingDua: false,
         protectionAyah: { fajr: 0, maghrib: 0 },
         ratib: false,
         customTasks: [],
@@ -190,14 +190,13 @@ class Store {
         const prayers = Object.values(this.data.today.prayers).every(p => p.completed);
         const badr = this.data.today.asmaulBadr;
         const salawat = Object.values(this.data.today.salawat).every(s => s >= 50);
-        const dhikr = this.data.today.dhikr.morning >= 11 && this.data.today.dhikr.evening >= 11;
-        const healingDua = this.data.today.healingDua;
+        const dhikr = this.data.today.dhikr.morning >= 11 && this.data.today.dhikr.evening >= 11 && this.data.today.dhikr.healing >= 11;
         const ayah = this.data.today.protectionAyah.fajr >= 3 && this.data.today.protectionAyah.maghrib >= 3;
         const ratib = this.data.today.ratib;
         const quran = (this.data.today.quranPages || 0) >= 7;
         const custom = Array.isArray(this.data.today.customTasks) ? this.data.today.customTasks.every(t => t.completed) : true;
 
-        return prayers && badr && salawat && dhikr && healingDua && ayah && ratib && quran && custom;
+        return prayers && badr && salawat && dhikr && ayah && ratib && quran && custom;
     }
 
     // Actions
@@ -272,11 +271,6 @@ class Store {
 
     toggleRatib() {
         this.data.today.ratib = !this.data.today.ratib;
-        this.saveData();
-    }
-
-    toggleHealingDua() {
-        this.data.today.healingDua = !this.data.today.healingDua;
         this.saveData();
     }
 

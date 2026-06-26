@@ -206,10 +206,11 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderDhikr() {
         const container = document.getElementById('dhikr-container');
         container.innerHTML = '';
-        const types = ['morning', 'evening'];
+        const types = ['morning', 'evening', 'healing'];
         
         types.forEach(type => {
-            const label = type.charAt(0).toUpperCase() + type.slice(1) + ' Protection Dhikr';
+            let label = type.charAt(0).toUpperCase() + type.slice(1) + ' Protection Dhikr';
+            if (type === 'healing') label = 'Healing & Protection Dua';
             const card = document.createElement('div');
             card.className = 'card counter-card';
             card.id = `card-dhikr-${type}`;
@@ -342,7 +343,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     document.getElementById('btn-tick-badr').addEventListener('click', () => window.store.toggleBadr());
     document.getElementById('btn-tick-ratib').addEventListener('click', () => window.store.toggleRatib());
-    document.getElementById('btn-tick-healing').addEventListener('click', () => window.store.toggleHealingDua());
     
 
     document.getElementById('btn-toggle-translation').addEventListener('click', (e) => {
@@ -442,19 +442,6 @@ document.addEventListener('DOMContentLoaded', () => {
             cardBadr.classList.remove('completed');
         }
 
-        // Healing Dua
-        const tickHealing = document.getElementById('btn-tick-healing');
-        const cardHealing = document.getElementById('healing-dua-card');
-        if (tickHealing && cardHealing) {
-            if (data.today.healingDua) {
-                tickHealing.classList.add('completed');
-                cardHealing.classList.add('completed');
-            } else {
-                tickHealing.classList.remove('completed');
-                cardHealing.classList.remove('completed');
-            }
-        }
-
         // Qur'an
         const quranPages = data.today.quranPages;
         document.getElementById('quran-val').textContent = quranPages;
@@ -518,7 +505,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('salawat-total').textContent = `${totalSalawat} / 250`;
 
         // Dhikr
-        ['morning', 'evening'].forEach(type => {
+        ['morning', 'evening', 'healing'].forEach(type => {
             const val = data.today.dhikr[type];
             document.getElementById(`dhikr-val-${type}`).textContent = val;
             const card = document.getElementById(`card-dhikr-${type}`);
@@ -584,10 +571,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasQuran = data.today.quranPages >= 7;
         checkSectionCompletion('badge-quran', hasQuran);
 
-        const allDhikr = data.today.dhikr.morning >= 11 && data.today.dhikr.evening >= 11;
+        const allDhikr = data.today.dhikr.morning >= 11 && data.today.dhikr.evening >= 11 && data.today.dhikr.healing >= 11;
         checkSectionCompletion('badge-dhikr', allDhikr);
-
-        checkSectionCompletion('badge-healing', data.today.healingDua);
 
         const allAyah = data.today.protectionAyah.fajr >= 3 && data.today.protectionAyah.maghrib >= 3;
         checkSectionCompletion('badge-ayah', allAyah);
@@ -603,7 +588,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.today.quranPages >= 7) completedItems++;
         if (data.today.dhikr.morning >= 11) completedItems++;
         if (data.today.dhikr.evening >= 11) completedItems++;
-        if (data.today.healingDua) completedItems++;
+        if (data.today.dhikr.healing >= 11) completedItems++;
         if (data.today.protectionAyah.fajr >= 3) completedItems++;
         if (data.today.protectionAyah.maghrib >= 3) completedItems++;
         if (data.today.ratib) completedItems++;
