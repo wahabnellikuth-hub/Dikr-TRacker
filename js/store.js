@@ -86,6 +86,7 @@ class Store {
     }
 
     saveData() {
+        this.calculateStreak(false); // Update streak dynamically based on current progress
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
         // Dispatch custom event to notify UI
         window.dispatchEvent(new Event('storeUpdated'));
@@ -136,8 +137,8 @@ class Store {
     }
 
     resetToday() {
-        // Calculate streak before resetting
-        this.calculateStreak();
+        // Calculate streak before resetting (end of day evaluation)
+        this.calculateStreak(true);
 
         const oldCustomTasks = Array.isArray(this.data.today.customTasks) ? this.data.today.customTasks : [];
         const resetCustomTasks = oldCustomTasks.map(t => ({ ...t, completed: false }));
@@ -164,7 +165,7 @@ class Store {
         this.saveData();
     }
 
-    calculateStreak() {
+    calculateStreak(isEndOfDay = false) {
         const percent = this.getCompletionPercentage();
         
         // Push to history
@@ -190,8 +191,7 @@ class Store {
         if (percent > 0) {
             if (!this.data.today.allCompletedForToday) {
                 this.data.stats.currentStreak += 1;
-                // Only count as fully "completed day" if 100%? Or maybe just if >0%?
-                // We'll keep daysCompleted for 100% or just any progress? Let's say daysCompleted is for 100%
+                // Only count as fully "completed day" if 100%
                 if (percent === 100) {
                     this.data.stats.daysCompleted += 1;
                 }
@@ -201,8 +201,12 @@ class Store {
                 this.data.stats.longestStreak = this.data.stats.currentStreak;
             }
         } else {
-            // Streak broken if 0%
-            if (!this.data.today.allCompletedForToday) {
+            if (this.data.today.allCompletedForToday) {
+                // User undid their progress for today, revert streak increment
+                this.data.stats.currentStreak = Math.max(0, this.data.stats.currentStreak - 1);
+                this.data.today.allCompletedForToday = false;
+            } else if (isEndOfDay) {
+                // Streak broken if 0% at the end of the day
                 this.data.stats.currentStreak = 0;
             }
         }
