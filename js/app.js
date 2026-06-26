@@ -350,40 +350,26 @@ document.addEventListener('DOMContentLoaded', () => {
         e.target.textContent = trans.classList.contains('hidden') ? 'Show Translation' : 'Hide Translation';
     });
 
-    // PDF Modals
-    const openPdfModal = (type) => {
-        currentPdfType = type;
-        pdfTypeName.textContent = type === 'badr' ? 'Asmaul Badr' : 'Ratib al-Haddad';
-        const link = window.store.data.settings.pdfLinks[type];
+    // PDF Handling
+    const openPdf = (type) => {
+        const typeName = type === 'badr' ? 'Asmaul Badr' : 'Ratib al-Haddad';
+        let link = window.store.data.settings.pdfLinks[type];
         
-        pdfLinkInput.value = link || '';
-        if (link) {
-            pdfViewerFrame.src = link;
-            pdfViewerFrame.classList.remove('hidden');
-        } else {
-            pdfViewerFrame.classList.add('hidden');
-            pdfViewerFrame.src = '';
+        if (!link) {
+            link = prompt(`Please enter the PDF link for ${typeName}:`, "https://");
+            if (link && link.trim() !== "" && link.trim() !== "https://") {
+                window.store.setPdfLink(type, link.trim());
+            } else {
+                return; // User cancelled or entered empty
+            }
         }
         
-        pdfModal.classList.remove('hidden');
+        // Open the PDF in a new tab natively
+        window.open(link, '_blank');
     };
 
-    document.getElementById('btn-pdf-badr').addEventListener('click', () => openPdfModal('badr'));
-    document.getElementById('btn-pdf-ratib').addEventListener('click', () => openPdfModal('ratib'));
-    
-    btnClosePdf.addEventListener('click', () => {
-        pdfModal.classList.add('hidden');
-        pdfViewerFrame.src = '';
-    });
-    
-    btnSavePdfLink.addEventListener('click', () => {
-        const url = pdfLinkInput.value.trim();
-        if (url && currentPdfType) {
-            window.store.setPdfLink(currentPdfType, url);
-            pdfViewerFrame.src = url;
-            pdfViewerFrame.classList.remove('hidden');
-        }
-    });
+    document.getElementById('btn-pdf-badr').addEventListener('click', () => openPdf('badr'));
+    document.getElementById('btn-pdf-ratib').addEventListener('click', () => openPdf('ratib'));
 
     // Settings
     document.getElementById('reset-time-select').addEventListener('change', (e) => {
