@@ -614,3 +614,88 @@ body {
     50% { transform: scale(1.2); opacity: 1; }
     100% { transform: scale(1); opacity: 1; }
 }
+
+/* ─── Sync Section ───────────────────────────────────────── */
+
+.sync-status-banner {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(56, 161, 105, 0.12);
+    color: var(--success);
+    border: 1px solid rgba(56, 161, 105, 0.3);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.sync-status-banner.error {
+    background: rgba(229, 62, 62, 0.1);
+    color: #e53e3e;
+    border-color: rgba(229, 62, 62, 0.3);
+}
+
+.sync-status-banner.loading {
+    background: rgba(214, 158, 46, 0.12);
+    color: var(--accent);
+    border-color: rgba(214, 158, 46, 0.3);
+}
+
+.pin-display {
+    font-family: 'Courier New', 'Lucida Console', monospace;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--primary);
+    background: var(--bg-main);
+    border: 2px dashed var(--primary);
+    border-radius: var(--radius-md);
+    padding: 0.6rem 1rem;
+    flex: 1;
+    text-align: center;
+    transition: var(--transition);
+}
+
+[data-theme="dark"] .pin-display {
+    background: rgba(72, 187, 120, 0.08);
+}
+
+.sync-divider {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.25rem 0;
+}
+
+.sync-divider hr {
+    flex: 1;
+    border: none;
+    border-top: 1px solid var(--border);
+}
+
+.sync-divider span {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+/* Pulse animation for sync icon in header when syncing */
+@keyframes syncPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.sync-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.85);
+    background: rgba(255,255,255,0.15);
+    border-radius: var(--radius-full);
+    padding: 0.2rem 0.6rem;
+    animation: syncPulse 2s ease-in-out infinite;
+}
+

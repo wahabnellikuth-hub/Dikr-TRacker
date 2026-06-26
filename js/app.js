@@ -83,10 +83,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('protection-dhikr-section').classList.remove('hidden');
                 document.getElementById('protection-ayah-section').classList.remove('hidden');
                 document.getElementById('ratib-section').classList.remove('hidden');
+                document.getElementById('custom-tasks-section').classList.remove('hidden');
             } else if (target === 'stats') {
                 document.getElementById('stats-section').classList.remove('hidden');
             } else if (target === 'settings') {
                 document.getElementById('settings-section').classList.remove('hidden');
+            } else if (target === 'sync') {
+                document.getElementById('sync-section').classList.remove('hidden');
+                renderSyncUI();
             }
         });
     });
@@ -640,4 +644,128 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
         });
     }
+
+    // ─── Sync UI ────────────────────────────────────────────────────────────
+
+    function setSyncBanner(message, type = 'success') {
+        const banner = document.getElementById('sync-status-banner');
+        const text = document.getElementById('sync-status-text');
+        if (!banner || !text) return;
+        banner.className = `sync-status-banner ${type}`;
+        text.textContent = message;
+        banner.classList.remove('hidden');
+    }
+
+    function renderSyncUI() {
+        const linked = window.syncManager && window.syncManager.isLinked();
+        const linkedView = document.getElementById('sync-linked-view');
+        const unlinkedView = document.getElementById('sync-unlinked-view');
+        const pinDisplay = document.getElementById('pin-display');
+        const banner = document.getElementById('sync-status-banner');
+
+        if (linked) {
+            linkedView.classList.remove('hidden');
+            unlinkedView.classList.add('hidden');
+            pinDisplay.textContent = window.syncManager.getCurrentPin();
+            setSyncBanner('✅ Synced — changes update across all your devices', 'success');
+        } else {
+            linkedView.classList.add('hidden');
+            unlinkedView.classList.remove('hidden');
+            banner.classList.add('hidden');
+        }
+    }
+
+    // Init sync on load and listen for remote changes
+    // sync.js is a module so it loads asynchronously — wait for it
+    function waitForSyncManager(retries = 20) {
+        if (window.syncManager) {
+            window.syncManager.initSync().then(pin => {
+                if (pin) {
+                    attachRemoteChangeListener();
+                }
+            });
+        } else if (retries > 0) {
+            setTimeout(() => waitForSyncManager(retries - 1), 150);
+        }
+    }
+
+    function attachRemoteChangeListener() {
+        window.syncManager.onRemoteChange((remoteData) => {
+            window.store.data = {
+                settings: { ...window.store.data.settings, ...remoteData.settings, theme: window.store.data.settings.theme },
+                stats: { ...window.store.data.stats, ...remoteData.stats },
+                today: { ...window.store.data.today, ...remoteData.today }
+            };
+            localStorage.setItem('azkar_companion_data', JSON.stringify(window.store.data));
+            window.dispatchEvent(new Event('storeUpdated'));
+        });
+    }
+
+    waitForSyncManager();
+
+    // Create PIN button
+    document.getElementById('btn-create-pin').addEventListener('click', async () => {
+        const btn = document.getElementById('btn-create-pin');
+        btn.disabled = true;
+        btn.textContent = 'Creating...';
+        setSyncBanner('Connecting to Firebase...', 'loading');
+        try {
+            const pin = await window.syncManager.createPin();
+            attachRemoteChangeListener();
+            renderSyncUI();
+        } catch (e) {
+            setSyncBanner('Error: ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="link" style="width:16px;height:16px;"></i> Create Sync PIN';
+            lucide.createIcons();
+        }
+    });
+
+    // Connect to existing PIN button
+    document.getElementById('btn-link-pin').addEventListener('click', async () => {
+        const input = document.getElementById('sync-pin-input');
+        const pin = input.value.trim().toUpperCase();
+        if (!pin) { setSyncBanner('Please enter a PIN first.', 'error'); return; }
+
+        const btn = document.getElementById('btn-link-pin');
+        btn.disabled = true;
+        btn.textContent = 'Connecting...';
+        setSyncBanner('Looking up PIN...', 'loading');
+        try {
+            await window.syncManager.linkPin(pin);
+            attachRemoteChangeListener();
+            input.value = '';
+            renderSyncUI();
+        } catch (e) {
+            setSyncBanner('❌ ' + e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="log-in" style="width:16px;height:16px;"></i> Connect to PIN';
+            lucide.createIcons();
+        }
+    });
+
+    // Copy PIN button
+    document.getElementById('btn-copy-pin').addEventListener('click', () => {
+        const pin = window.syncManager.getCurrentPin();
+        if (pin) {
+            navigator.clipboard.writeText(pin).then(() => {
+                const btn = document.getElementById('btn-copy-pin');
+                btn.textContent = 'Copied!';
+                setTimeout(() => {
+                    btn.innerHTML = '<i data-lucide="copy" style="width:14px;height:14px;"></i> Copy';
+                    lucide.createIcons();
+                }, 2000);
+            });
+        }
+    });
+
+    // Unlink button
+    document.getElementById('btn-unlink').addEventListener('click', () => {
+        if (confirm('Unlink this device from sync? Your local data will be kept.')) {
+            window.syncManager.unlinkPin();
+            renderSyncUI();
+        }
+    });
 });
