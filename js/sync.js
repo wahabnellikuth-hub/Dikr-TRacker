@@ -1,6 +1,6 @@
-// js/sync.js — Firebase Cross-Device Sync Module
+// js/sync.js — Firebase Global Sync Module
 // No auth required — uses open rules on Traker/ path
-// Exposes window.syncManager
+// Exposes window.syncManager for a single, global dataset
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
@@ -16,13 +16,13 @@ const firebaseConfig = {
     measurementId: "G-MZH4N8E32M"
 };
 
-const SYNC_PIN_KEY = 'azkar_sync_pin';
-
 let db = null;
-let currentPin = null;
 let activeListenerRef = null;
 let isSyncingFromRemote = false;
 let onChangeCallback = null;
+
+// The single, hardcoded path for the global database
+const GLOBAL_DATA_PATH = 'Traker/globalData';
 
 // ─── Init Firebase (no auth needed) ──────────────────────────────────────────
 
@@ -40,25 +40,14 @@ function initFirebase() {
     return db;
 }
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function generatePin() {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    let pin = 'AZK-';
-    for (let i = 0; i < 5; i++) {
-        pin += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return pin;
-}
-
 // ─── Listener ────────────────────────────────────────────────────────────────
 
-function startListening(pin) {
+function startListening() {
     if (activeListenerRef) {
         off(activeListenerRef);
         activeListenerRef = null;
     }
-    const dataRef = ref(db, `Traker/${pin}/data`);
+    const dataRef = ref(db, `${GLOBAL_DATA_PATH}/data`);
     activeListenerRef = dataRef;
 
     onValue(dataRef, (snapshot) => {
@@ -76,133 +65,78 @@ function startListening(pin) {
 
 // ─── Public API ──────────────────────────────────────────────────────────────
 
-async function createPin() {
-    initFirebase();
-    const pin = generatePin();
-    const currentData = window.store ? window.store.data : null;
-
+async function initSync() {
     try {
-        await set(ref(db, `Traker/${pin}`), {
-            data: currentData,
-            createdAt: Date.now(),
-            lastUpdated: Date.now()
-        });
-        console.log('[Sync] PIN created & data saved to Firebase ✅:', pin);
+        initFirebase();
+        
+        // Check if data exists, if not, push current local data to initialize
+        const snapshot = await get(ref(db, `${GLOBAL_DATA_PATH}/data`));
+        if (!snapshot.exists()) {
+             const currentData = window.store ? window.store.data : null;
+             await set(ref(db, GLOBAL_DATA_PATH), {
+                 data: currentData,
+                 createdAt: Date.now(),
+                 lastUpdated: Date.now()
+             });
+             console.log('[Sync] Initialized global data in Firebase');
+        } else {
+             // Merge remote data into local store initially
+             const remoteData = snapshot.val();
+             if (remoteData && window.store) {
+                 isSyncingFromRemote = true;
+                 window.store.data = {
+                     settings: {
+                         ...window.store.data.settings,
+                         ...remoteData.settings,
+                         theme: window.store.data.settings.theme // keep local theme
+                     },
+                     stats: { ...window.store.data.stats, ...remoteData.stats },
+                     today: { ...window.store.data.today, ...remoteData.today }
+                 };
+                 localStorage.setItem('azkar_companion_data', JSON.stringify(window.store.data));
+                 window.dispatchEvent(new Event('storeUpdated'));
+                 isSyncingFromRemote = false;
+             }
+             console.log('[Sync] Loaded existing global data from Firebase');
+        }
+        
+        startListening();
+        return true;
     } catch (e) {
-        console.error('[Sync] Failed to write to Firebase:', e.message);
-        throw new Error('Could not save to Firebase. Check database rules (allow read/write = true).');
+        console.error('[Sync] Failed to init sync:', e.message);
+        return false;
     }
-
-    currentPin = pin;
-    localStorage.setItem(SYNC_PIN_KEY, pin);
-    startListening(pin);
-    return pin;
-}
-
-async function linkPin(pin) {
-    pin = pin.trim().toUpperCase();
-    if (!pin) throw new Error('Please enter a PIN.');
-    initFirebase();
-
-    let snapshot;
-    try {
-        snapshot = await get(ref(db, `Traker/${pin}`));
-    } catch (e) {
-        console.error('[Sync] Failed to read from Firebase:', e.message);
-        throw new Error('Could not connect to Firebase. Check database rules.');
-    }
-
-    if (!snapshot.exists()) {
-        throw new Error('PIN not found. Please check and try again.');
-    }
-
-    const remoteData = snapshot.val().data;
-    if (remoteData && window.store) {
-        isSyncingFromRemote = true;
-        window.store.data = {
-            settings: {
-                ...window.store.data.settings,
-                ...remoteData.settings,
-                theme: window.store.data.settings.theme
-            },
-            stats: { ...window.store.data.stats, ...remoteData.stats },
-            today: { ...window.store.data.today, ...remoteData.today }
-        };
-        localStorage.setItem('azkar_companion_data', JSON.stringify(window.store.data));
-        window.dispatchEvent(new Event('storeUpdated'));
-        isSyncingFromRemote = false;
-    }
-
-    currentPin = pin;
-    localStorage.setItem(SYNC_PIN_KEY, pin);
-    startListening(pin);
-    console.log('[Sync] Linked to PIN ✅:', pin);
-    return pin;
 }
 
 async function pushData(data) {
-    if (!currentPin || isSyncingFromRemote || !db) return;
+    if (isSyncingFromRemote || !db) return;
     try {
-        await set(ref(db, `Traker/${currentPin}`), {
+        await set(ref(db, GLOBAL_DATA_PATH), {
             data: data,
             lastUpdated: Date.now()
         });
-        console.log('[Sync] Data pushed to Firebase ✅');
+        console.log('[Sync] Global data pushed to Firebase ✅');
     } catch (e) {
         console.error('[Sync] Push failed ❌:', e.message);
     }
 }
 
-function unlinkPin() {
-    if (activeListenerRef) {
-        off(activeListenerRef);
-        activeListenerRef = null;
-    }
-    currentPin = null;
-    localStorage.removeItem(SYNC_PIN_KEY);
-    console.log('[Sync] Device unlinked');
-}
-
-function getStoredPin() {
-    return localStorage.getItem(SYNC_PIN_KEY);
-}
-
+// Always consider it linked since it's a global database
 function isLinked() {
-    return currentPin !== null;
+    return true; 
 }
 
 function onRemoteChange(callback) {
     onChangeCallback = callback;
 }
 
-async function initSync() {
-    const storedPin = getStoredPin();
-    if (storedPin) {
-        try {
-            initFirebase();
-            currentPin = storedPin;
-            startListening(storedPin);
-            console.log('[Sync] Restored sync for PIN:', storedPin);
-            return storedPin;
-        } catch (e) {
-            console.error('[Sync] Failed to restore sync:', e.message);
-        }
-    }
-    return null;
-}
-
 // ─── Expose globally ─────────────────────────────────────────────────────────
 
 window.syncManager = {
-    createPin,
-    linkPin,
-    unlinkPin,
     pushData,
-    getStoredPin,
     isLinked,
     onRemoteChange,
-    initSync,
-    getCurrentPin: () => currentPin
+    initSync
 };
 
 console.log('[Sync] sync.js loaded ✅');

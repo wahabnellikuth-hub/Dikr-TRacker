@@ -88,9 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('stats-section').classList.remove('hidden');
             } else if (target === 'settings') {
                 document.getElementById('settings-section').classList.remove('hidden');
-            } else if (target === 'sync') {
-                document.getElementById('sync-section').classList.remove('hidden');
-                renderSyncUI();
             }
         });
     });
@@ -645,34 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ─── Sync UI ──────────────────────────────────────────────────────────────
-
-    function setSyncBanner(message, type = 'success') {
-        const banner = document.getElementById('sync-status-banner');
-        const text = document.getElementById('sync-status-text');
-        if (!banner || !text) return;
-        banner.className = `sync-status-banner ${type}`;
-        text.textContent = message;
-        banner.classList.remove('hidden');
-    }
-
-    function renderSyncUI() {
-        const linked = window.syncManager && window.syncManager.isLinked();
-        const linkedView = document.getElementById('sync-linked-view');
-        const unlinkedView = document.getElementById('sync-unlinked-view');
-        const pinDisplay = document.getElementById('pin-display');
-        const banner = document.getElementById('sync-status-banner');
-        if (linked) {
-            linkedView.classList.remove('hidden');
-            unlinkedView.classList.add('hidden');
-            pinDisplay.textContent = window.syncManager.getCurrentPin();
-            setSyncBanner('✅ Synced — changes update across all your devices', 'success');
-        } else {
-            linkedView.classList.add('hidden');
-            unlinkedView.classList.remove('hidden');
-            banner.classList.add('hidden');
-        }
-    }
+    // ─── Global Sync ──────────────────────────────────────────────────────────
 
     function attachRemoteChangeListener() {
         window.syncManager.onRemoteChange((remoteData) => {
@@ -687,24 +657,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // sync.js loads as ES module (async) — wait for it then init
-    // Auto-creates a PIN on first launch so data ALWAYS syncs to Firebase
     function waitForSyncManager(retries = 20) {
         if (window.syncManager) {
-            window.syncManager.initSync().then(async (pin) => {
-                if (pin) {
-                    // Already linked — just attach listener
+            window.syncManager.initSync().then(success => {
+                if (success) {
                     attachRemoteChangeListener();
-                    renderSyncUI();
-                } else {
-                    // First time — auto-create a PIN silently
-                    try {
-                        await window.syncManager.createPin();
-                        attachRemoteChangeListener();
-                        renderSyncUI();
-                        console.log('[Sync] Auto-created PIN:', window.syncManager.getCurrentPin());
-                    } catch (e) {
-                        console.warn('[Sync] Auto-init failed:', e.message);
-                    }
                 }
             });
         } else if (retries > 0) {
@@ -713,68 +670,4 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     waitForSyncManager();
 
-    // Create PIN
-    document.getElementById('btn-create-pin').addEventListener('click', async () => {
-        const btn = document.getElementById('btn-create-pin');
-        btn.disabled = true;
-        btn.textContent = 'Creating...';
-        setSyncBanner('Connecting to Firebase...', 'loading');
-        try {
-            await window.syncManager.createPin();
-            attachRemoteChangeListener();
-            renderSyncUI();
-        } catch (e) {
-            setSyncBanner('Error: ' + e.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="link" style="width:16px;height:16px;"></i> Create Sync PIN';
-            lucide.createIcons();
-        }
-    });
-
-    // Connect to existing PIN
-    document.getElementById('btn-link-pin').addEventListener('click', async () => {
-        const input = document.getElementById('sync-pin-input');
-        const pin = input.value.trim().toUpperCase();
-        if (!pin) { setSyncBanner('Please enter a PIN first.', 'error'); return; }
-        const btn = document.getElementById('btn-link-pin');
-        btn.disabled = true;
-        btn.textContent = 'Connecting...';
-        setSyncBanner('Looking up PIN...', 'loading');
-        try {
-            await window.syncManager.linkPin(pin);
-            attachRemoteChangeListener();
-            input.value = '';
-            renderSyncUI();
-        } catch (e) {
-            setSyncBanner('❌ ' + e.message, 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i data-lucide="log-in" style="width:16px;height:16px;"></i> Connect to PIN';
-            lucide.createIcons();
-        }
-    });
-
-    // Copy PIN
-    document.getElementById('btn-copy-pin').addEventListener('click', () => {
-        const pin = window.syncManager.getCurrentPin();
-        if (pin) {
-            navigator.clipboard.writeText(pin).then(() => {
-                const btn = document.getElementById('btn-copy-pin');
-                btn.textContent = 'Copied!';
-                setTimeout(() => {
-                    btn.innerHTML = '<i data-lucide="copy" style="width:14px;height:14px;"></i> Copy';
-                    lucide.createIcons();
-                }, 2000);
-            });
-        }
-    });
-
-    // Unlink
-    document.getElementById('btn-unlink').addEventListener('click', () => {
-        if (confirm('Unlink this device from sync? Your local data will be kept.')) {
-            window.syncManager.unlinkPin();
-            renderSyncUI();
-        }
-    });
 });

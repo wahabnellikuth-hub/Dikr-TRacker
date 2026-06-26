@@ -217,54 +217,6 @@
                 </div>
             </section>
 
-            <!-- Sync Section -->
-            <section class="section hidden" id="sync-section">
-                <h3 class="section-title">Device Sync</h3>
-
-                <div id="sync-status-banner" class="sync-status-banner hidden">
-                    <i data-lucide="wifi" style="width:18px;height:18px;"></i>
-                    <span id="sync-status-text">Synced</span>
-                </div>
-
-                <div class="card settings-card">
-                    <!-- LINKED VIEW -->
-                    <div id="sync-linked-view" class="hidden">
-                        <div class="setting-item" style="flex-direction:column;align-items:flex-start;gap:0.75rem;">
-                            <span style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);">YOUR SYNC PIN</span>
-                            <div style="display:flex;align-items:center;gap:0.75rem;width:100%;">
-                                <div class="pin-display" id="pin-display">---</div>
-                                <button class="action-button outline" id="btn-copy-pin" style="white-space:nowrap;">
-                                    <i data-lucide="copy" style="width:14px;height:14px;"></i> Copy
-                                </button>
-                            </div>
-                            <p style="font-size:0.8rem;color:var(--text-muted);">Enter this PIN on any other device to keep your data in sync automatically.</p>
-                        </div>
-                        <div class="setting-item">
-                            <span>Unlink this device</span>
-                            <button class="action-button outline danger" id="btn-unlink">Unlink</button>
-                        </div>
-                    </div>
-
-                    <!-- UNLINKED VIEW -->
-                    <div id="sync-unlinked-view">
-                        <div class="setting-item" style="flex-direction:column;align-items:flex-start;gap:0.75rem;">
-                            <p style="font-size:0.875rem;color:var(--text-muted);line-height:1.6;">Create a Sync PIN on this device, then enter it on your other devices. Your data will stay in sync automatically.</p>
-                            <button class="action-button primary" id="btn-create-pin" style="width:100%;justify-content:center;">
-                                <i data-lucide="link" style="width:16px;height:16px;"></i> Create Sync PIN
-                            </button>
-                        </div>
-                        <div class="sync-divider"><hr><span>OR</span><hr></div>
-                        <div class="setting-item" style="flex-direction:column;align-items:flex-start;gap:0.75rem;">
-                            <span style="font-size:0.75rem;font-weight:700;letter-spacing:0.08em;color:var(--text-muted);">JOIN AN EXISTING PIN</span>
-                            <input type="text" id="sync-pin-input" class="text-input" placeholder="e.g. AZK-AB123" maxlength="9" autocomplete="off" style="text-transform:uppercase;letter-spacing:0.1em;font-weight:600;">
-                            <button class="action-button outline" id="btn-link-pin" style="width:100%;justify-content:center;">
-                                <i data-lucide="log-in" style="width:16px;height:16px;"></i> Connect to PIN
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </section>
-
         </main>
         
         <!-- Bottom Navigation -->
@@ -280,10 +232,6 @@
             <button class="nav-item" data-target="settings">
                 <i data-lucide="settings"></i>
                 <span>Settings</span>
-            </button>
-            <button class="nav-item" data-target="sync">
-                <i data-lucide="refresh-cw"></i>
-                <span>Sync</span>
             </button>
         </nav>
     </div>
