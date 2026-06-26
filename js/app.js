@@ -687,10 +687,25 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // sync.js loads as ES module (async) — wait for it then init
+    // Auto-creates a PIN on first launch so data ALWAYS syncs to Firebase
     function waitForSyncManager(retries = 20) {
         if (window.syncManager) {
-            window.syncManager.initSync().then(pin => {
-                if (pin) attachRemoteChangeListener();
+            window.syncManager.initSync().then(async (pin) => {
+                if (pin) {
+                    // Already linked — just attach listener
+                    attachRemoteChangeListener();
+                    renderSyncUI();
+                } else {
+                    // First time — auto-create a PIN silently
+                    try {
+                        await window.syncManager.createPin();
+                        attachRemoteChangeListener();
+                        renderSyncUI();
+                        console.log('[Sync] Auto-created PIN:', window.syncManager.getCurrentPin());
+                    } catch (e) {
+                        console.warn('[Sync] Auto-init failed:', e.message);
+                    }
+                }
             });
         } else if (retries > 0) {
             setTimeout(() => waitForSyncManager(retries - 1), 150);
