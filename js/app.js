@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
     let isInitialLoad = true;
     const completedSectionsThisSession = new Set();
+    let hasCelebratedQuranExtra = false;
 
     function checkSectionCompletion(id, isCompleted) {
         const badge = document.getElementById(id);
@@ -57,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
     renderDhikr();
     renderAyahCounters();
     renderCustomTasks();
+    setupQuranListeners();
     updateUI();
     isInitialLoad = false;
 
@@ -77,6 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 document.getElementById('prayers-section').classList.remove('hidden');
                 document.getElementById('asmaul-badr-section').classList.remove('hidden');
                 document.getElementById('salawat-section').classList.remove('hidden');
+                document.getElementById('quran-section').classList.remove('hidden');
                 document.getElementById('protection-dhikr-section').classList.remove('hidden');
                 document.getElementById('protection-ayah-section').classList.remove('hidden');
                 document.getElementById('ratib-section').classList.remove('hidden');
@@ -308,6 +311,27 @@ document.addEventListener('DOMContentLoaded', () => {
         lucide.createIcons();
     }
 
+    function setupQuranListeners() {
+        document.getElementById('btn-quran-minus').addEventListener('click', () => {
+            window.store.updateQuranPages(-1);
+        });
+        document.getElementById('btn-quran-clear').addEventListener('click', () => {
+            window.store.updateQuranPages(-999);
+        });
+        document.getElementById('btn-quran-plus').addEventListener('click', () => {
+            window.store.updateQuranPages(1);
+        });
+        document.getElementById('btn-quran-custom').addEventListener('click', () => {
+            const val = prompt('Enter pages read (e.g., 5, 10):', '5');
+            if (val !== null) {
+                const num = parseInt(val, 10);
+                if (!isNaN(num) && num > 0) {
+                    window.store.updateQuranPages(num);
+                }
+            }
+        });
+    }
+
     // --- Static Event Listeners ---
     document.getElementById('btn-add-custom-task').addEventListener('click', () => {
         const name = prompt('Enter task name:');
@@ -430,6 +454,50 @@ document.addEventListener('DOMContentLoaded', () => {
             cardBadr.classList.remove('completed');
         }
 
+        // Qur'an
+        const quranPages = data.today.quranPages;
+        document.getElementById('quran-val').textContent = quranPages;
+        const cardQuran = document.getElementById('card-quran');
+        if (quranPages >= 7) {
+            cardQuran.classList.add('completed');
+        } else {
+            cardQuran.classList.remove('completed');
+            hasCelebratedQuranExtra = false; // Reset if they go below 7
+        }
+        
+        // Favour celebration if above 7
+        if (quranPages > 7 && !hasCelebratedQuranExtra && !isInitialLoad) {
+            hasCelebratedQuranExtra = true;
+            if (window.confetti) {
+                const duration = 3000;
+                const end = Date.now() + duration;
+                const colors = ['#bb0000', '#ffffff', '#2e7d32', '#d4af37'];
+
+                (function frame() {
+                    confetti({
+                        particleCount: 5,
+                        angle: 60,
+                        spread: 55,
+                        origin: { x: 0 },
+                        colors: colors,
+                        zIndex: 1000
+                    });
+                    confetti({
+                        particleCount: 5,
+                        angle: 120,
+                        spread: 55,
+                        origin: { x: 1 },
+                        colors: colors,
+                        zIndex: 1000
+                    });
+
+                    if (Date.now() < end) {
+                        requestAnimationFrame(frame);
+                    }
+                }());
+            }
+        }
+
         // Salawat
         let totalSalawat = 0;
         let salawatCompletedCount = 0;
@@ -481,6 +549,11 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('current-streak').textContent = data.stats.currentStreak;
         document.getElementById('longest-streak').textContent = data.stats.longestStreak;
         
+        const totalQuranPagesEl = document.getElementById('total-quran-pages');
+        if (totalQuranPagesEl) {
+            totalQuranPagesEl.textContent = data.stats.totalQuranPages || 0;
+        }
+        
         const topStreakVal = document.getElementById('top-streak-val');
         if (topStreakVal) {
             topStreakVal.textContent = `${data.stats.currentStreak} Day Streak`;
@@ -496,7 +569,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateOverallProgress() {
         const data = window.store.data;
         const customTasks = data.today.customTasks || [];
-        let totalItems = 5 + 1 + 5 + 2 + 2 + 1 + customTasks.length; 
+        let totalItems = 5 + 1 + 5 + 2 + 2 + 1 + customTasks.length + 1; // +1 for Qur'an reading
         let completedItems = 0;
 
         const allPrayers = prayers.every(p => data.today.prayers[p].completed);
@@ -506,6 +579,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const allSalawat = prayers.every(p => data.today.salawat[p] >= 50);
         checkSectionCompletion('badge-salawat', allSalawat);
+
+        const hasQuran = data.today.quranPages >= 7;
+        checkSectionCompletion('badge-quran', hasQuran);
 
         const allDhikr = data.today.dhikr.morning >= 11 && data.today.dhikr.evening >= 11;
         checkSectionCompletion('badge-dhikr', allDhikr);
@@ -521,6 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
         prayers.forEach(p => { if (data.today.prayers[p].completed) completedItems++; });
         if (data.today.asmaulBadr) completedItems++;
         prayers.forEach(p => { if (data.today.salawat[p] >= 50) completedItems++; });
+        if (data.today.quranPages >= 7) completedItems++;
         if (data.today.dhikr.morning >= 11) completedItems++;
         if (data.today.dhikr.evening >= 11) completedItems++;
         if (data.today.protectionAyah.fajr >= 3) completedItems++;

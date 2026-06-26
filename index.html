@@ -91,6 +91,27 @@
                 </div>
             </section>
 
+            <!-- Section 3.5: Qur'an Reading -->
+            <section class="section" id="quran-section">
+                <h3 class="section-title">Qur'an Reading <span id="badge-quran" class="section-badge hidden"><i data-lucide="star" style="fill: var(--gold); stroke: var(--gold);"></i></span></h3>
+                <div class="card counter-card" id="card-quran">
+                    <div class="counter-info">
+                        <h4>Pages Read Today</h4>
+                        <div class="counter-value"><span id="quran-val">0</span> / 7</div>
+                    </div>
+                    <div class="counter-controls">
+                        <button class="counter-btn minus" id="btn-quran-clear" title="Clear count" style="margin-right: 0.25rem;">
+                            <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
+                        </button>
+                        <button class="counter-btn minus" id="btn-quran-minus">-</button>
+                        <button class="counter-btn custom" id="btn-quran-custom" title="Add custom amount" style="background: transparent; border: 1px solid var(--border); color: var(--text-main);">
+                            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
+                        </button>
+                        <button class="counter-btn plus" id="btn-quran-plus">+</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- Section 4: Morning & Evening Protection Dhikr -->
             <section class="section" id="protection-dhikr-section">
                 <h3 class="section-title">Protection Dhikr <span id="badge-dhikr" class="section-badge hidden"><i data-lucide="star" style="fill: var(--gold); stroke: var(--gold);"></i></span></h3>
@@ -162,6 +183,12 @@
                         <div class="stat-info">
                             <span class="stat-label">Longest Streak</span>
                             <span class="stat-value" id="longest-streak">0</span>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-info">
+                            <span class="stat-label">Total Qur'an Pages</span>
+                            <span class="stat-value" id="total-quran-pages">0</span>
                         </div>
                     </div>
                     <!-- More stats added via JS -->

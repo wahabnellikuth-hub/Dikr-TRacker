@@ -14,6 +14,7 @@ const defaultState = {
         currentStreak: 0,
         longestStreak: 0,
         totalSalawat: 0,
+        totalQuranPages: 0,
         daysCompleted: 0
     },
     today: {
@@ -27,6 +28,7 @@ const defaultState = {
             isha: { completed: false, jamaah: false }
         },
         asmaulBadr: false,
+        quranPages: 0,
         salawat: {
             fajr: 0,
             dhuhr: 0,
@@ -61,8 +63,14 @@ class Store {
                 if (typeof todayData.protectionAyah !== 'object') {
                     todayData.protectionAyah = { fajr: 0, maghrib: 0 };
                 }
+                if (typeof todayData.quranPages !== 'number') {
+                    todayData.quranPages = 0;
+                }
                 if (!Array.isArray(todayData.customTasks)) {
                     todayData.customTasks = [];
+                }
+                if (typeof parsed.stats.totalQuranPages !== 'number') {
+                    parsed.stats.totalQuranPages = 0;
                 }
                 return {
                     settings: { ...defaultState.settings, ...parsed.settings },
@@ -141,6 +149,7 @@ class Store {
                 isha: { completed: false, jamaah: false }
             },
             asmaulBadr: false,
+            quranPages: 0,
             salawat: { fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0 },
             dhikr: { morning: 0, evening: 0 },
             protectionAyah: { fajr: 0, maghrib: 0 },
@@ -179,9 +188,10 @@ class Store {
         const dhikr = this.data.today.dhikr.morning >= 11 && this.data.today.dhikr.evening >= 11;
         const ayah = this.data.today.protectionAyah.fajr >= 3 && this.data.today.protectionAyah.maghrib >= 3;
         const ratib = this.data.today.ratib;
+        const quran = (this.data.today.quranPages || 0) >= 7;
         const custom = Array.isArray(this.data.today.customTasks) ? this.data.today.customTasks.every(t => t.completed) : true;
 
-        return prayers && badr && salawat && dhikr && ayah && ratib && custom;
+        return prayers && badr && salawat && dhikr && ayah && ratib && quran && custom;
     }
 
     // Actions
@@ -197,6 +207,26 @@ class Store {
 
     toggleBadr() {
         this.data.today.asmaulBadr = !this.data.today.asmaulBadr;
+        this.saveData();
+    }
+
+    updateQuranPages(delta) {
+        let current = this.data.today.quranPages;
+        let previous = current;
+        current += delta;
+        
+        // Handle clear (if delta is heavily negative, e.g. -999)
+        if (delta === -999) {
+            current = 0;
+        } else if (current < 0) {
+            current = 0;
+        }
+        
+        const actualAdded = current - previous;
+        this.data.stats.totalQuranPages += actualAdded;
+        if (this.data.stats.totalQuranPages < 0) this.data.stats.totalQuranPages = 0;
+
+        this.data.today.quranPages = current;
         this.saveData();
     }
 
