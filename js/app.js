@@ -206,11 +206,10 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderDhikr() {
         const container = document.getElementById('dhikr-container');
         container.innerHTML = '';
-        const types = ['morning', 'evening', 'healing'];
+        const types = ['morning', 'evening'];
         
         types.forEach(type => {
             let label = type.charAt(0).toUpperCase() + type.slice(1) + ' Protection Dhikr';
-            if (type === 'healing') label = 'Healing & Protection Dua';
             const card = document.createElement('div');
             card.className = 'card counter-card';
             card.id = `card-dhikr-${type}`;
@@ -505,7 +504,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('salawat-total').textContent = `${totalSalawat} / 250`;
 
         // Dhikr
-        ['morning', 'evening', 'healing'].forEach(type => {
+        ['morning', 'evening'].forEach(type => {
             const val = data.today.dhikr[type];
             document.getElementById(`dhikr-val-${type}`).textContent = val;
             const card = document.getElementById(`card-dhikr-${type}`);
@@ -547,6 +546,8 @@ document.addEventListener('DOMContentLoaded', () => {
             topStreakVal.textContent = `${data.stats.currentStreak} Day Streak`;
         }
 
+        renderDailyProgressChart();
+
         // Render custom tasks if there are changes
         renderCustomTasks();
 
@@ -557,7 +558,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateOverallProgress() {
         const data = window.store.data;
         const customTasks = data.today.customTasks || [];
-        let totalItems = 5 + 1 + 5 + 2 + 1 + 2 + 1 + customTasks.length + 1; // +1 for Healing Dua, +1 for Qur'an reading
+        let totalItems = 5 + 1 + 5 + 2 + 2 + 1 + customTasks.length + 1; // +1 for Qur'an reading
         let completedItems = 0;
 
         const allPrayers = prayers.every(p => data.today.prayers[p].completed);
@@ -571,7 +572,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const hasQuran = data.today.quranPages >= 7;
         checkSectionCompletion('badge-quran', hasQuran);
 
-        const allDhikr = data.today.dhikr.morning >= 11 && data.today.dhikr.evening >= 11 && data.today.dhikr.healing >= 11;
+        const allDhikr = data.today.dhikr.morning >= 11 && data.today.dhikr.evening >= 11;
         checkSectionCompletion('badge-dhikr', allDhikr);
 
         const allAyah = data.today.protectionAyah.fajr >= 3 && data.today.protectionAyah.maghrib >= 3;
@@ -588,7 +589,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.today.quranPages >= 7) completedItems++;
         if (data.today.dhikr.morning >= 11) completedItems++;
         if (data.today.dhikr.evening >= 11) completedItems++;
-        if (data.today.dhikr.healing >= 11) completedItems++;
         if (data.today.protectionAyah.fajr >= 3) completedItems++;
         if (data.today.protectionAyah.maghrib >= 3) completedItems++;
         if (data.today.ratib) completedItems++;
@@ -616,6 +616,52 @@ document.addEventListener('DOMContentLoaded', () => {
         const circumference = 283;
         const offset = circumference - (percentage / 100) * circumference;
         mainProgressRing.style.strokeDashoffset = offset;
+    }
+
+    function renderDailyProgressChart() {
+        const chartContainer = document.getElementById('daily-progress-chart');
+        if (!chartContainer) return;
+        
+        const history = window.store.data.stats.history || [];
+        // Get last 7 days
+        const last7 = history.slice(-7);
+        
+        chartContainer.innerHTML = '';
+        
+        if (last7.length === 0) {
+            chartContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin: auto;">No data yet</p>';
+            return;
+        }
+
+        last7.forEach(entry => {
+            const dateObj = new Date(entry.date);
+            const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
+            
+            const barContainer = document.createElement('div');
+            barContainer.className = 'chart-bar-container';
+            
+            const percentLabel = document.createElement('div');
+            percentLabel.className = 'chart-bar-percent';
+            percentLabel.textContent = `${entry.percent}%`;
+            
+            const bar = document.createElement('div');
+            bar.className = 'chart-bar';
+            bar.style.height = '0%';
+            
+            setTimeout(() => {
+                bar.style.height = `${entry.percent}%`;
+            }, 50);
+            
+            const dayLabel = document.createElement('div');
+            dayLabel.className = 'chart-bar-label';
+            dayLabel.textContent = dayName;
+            
+            barContainer.appendChild(percentLabel);
+            barContainer.appendChild(bar);
+            barContainer.appendChild(dayLabel);
+            
+            chartContainer.appendChild(barContainer);
+        });
     }
 
     // Register Service Worker

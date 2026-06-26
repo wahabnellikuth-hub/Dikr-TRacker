@@ -38,8 +38,7 @@ const defaultState = {
         },
         dhikr: {
             morning: 0,
-            evening: 0,
-            healing: 0
+            evening: 0
         },
         protectionAyah: { fajr: 0, maghrib: 0 },
         ratib: false,
@@ -166,20 +165,43 @@ class Store {
     }
 
     calculateStreak() {
-        // Check if all essential tasks were completed
-        const isCompleted = this.checkAllCompleted();
+        const percent = this.getCompletionPercentage();
         
-        if (isCompleted) {
+        // Push to history
+        if (!this.data.stats.history) {
+            this.data.stats.history = [];
+        }
+        
+        // Avoid duplicate dates if reset manually multiple times
+        const lastEntry = this.data.stats.history[this.data.stats.history.length - 1];
+        if (lastEntry && lastEntry.date === this.data.today.date) {
+            lastEntry.percent = percent;
+        } else {
+            this.data.stats.history.push({
+                date: this.data.today.date,
+                percent: percent
+            });
+        }
+
+        if (this.data.stats.history.length > 30) {
+            this.data.stats.history.shift();
+        }
+
+        if (percent > 0) {
             if (!this.data.today.allCompletedForToday) {
                 this.data.stats.currentStreak += 1;
-                this.data.stats.daysCompleted += 1;
+                // Only count as fully "completed day" if 100%? Or maybe just if >0%?
+                // We'll keep daysCompleted for 100% or just any progress? Let's say daysCompleted is for 100%
+                if (percent === 100) {
+                    this.data.stats.daysCompleted += 1;
+                }
                 this.data.today.allCompletedForToday = true;
             }
             if (this.data.stats.currentStreak > this.data.stats.longestStreak) {
                 this.data.stats.longestStreak = this.data.stats.currentStreak;
             }
         } else {
-            // If resetting and not completed, streak is broken
+            // Streak broken if 0%
             if (!this.data.today.allCompletedForToday) {
                 this.data.stats.currentStreak = 0;
             }
@@ -190,13 +212,50 @@ class Store {
         const prayers = Object.values(this.data.today.prayers).every(p => p.completed);
         const badr = this.data.today.asmaulBadr;
         const salawat = Object.values(this.data.today.salawat).every(s => s >= 50);
-        const dhikr = this.data.today.dhikr.morning >= 11 && this.data.today.dhikr.evening >= 11 && this.data.today.dhikr.healing >= 11;
+        const dhikr = this.data.today.dhikr.morning >= 11 && this.data.today.dhikr.evening >= 11;
         const ayah = this.data.today.protectionAyah.fajr >= 3 && this.data.today.protectionAyah.maghrib >= 3;
         const ratib = this.data.today.ratib;
         const quran = (this.data.today.quranPages || 0) >= 7;
         const custom = Array.isArray(this.data.today.customTasks) ? this.data.today.customTasks.every(t => t.completed) : true;
 
         return prayers && badr && salawat && dhikr && ayah && ratib && quran && custom;
+    }
+
+    getCompletionPercentage() {
+        let total = 0;
+        let completed = 0;
+
+        const prayers = Object.values(this.data.today.prayers);
+        total += prayers.length;
+        completed += prayers.filter(p => p.completed).length;
+
+        total += 1;
+        if (this.data.today.asmaulBadr) completed += 1;
+
+        const salawat = Object.values(this.data.today.salawat);
+        total += salawat.length;
+        completed += salawat.filter(s => s >= 50).length;
+
+        total += 2;
+        if (this.data.today.dhikr.morning >= 11) completed += 1;
+        if (this.data.today.dhikr.evening >= 11) completed += 1;
+
+        total += 2;
+        if (this.data.today.protectionAyah.fajr >= 3) completed += 1;
+        if (this.data.today.protectionAyah.maghrib >= 3) completed += 1;
+
+        total += 1;
+        if (this.data.today.ratib) completed += 1;
+
+        total += 1;
+        if ((this.data.today.quranPages || 0) >= 7) completed += 1;
+
+        if (Array.isArray(this.data.today.customTasks) && this.data.today.customTasks.length > 0) {
+            total += this.data.today.customTasks.length;
+            completed += this.data.today.customTasks.filter(t => t.completed).length;
+        }
+
+        return total === 0 ? 0 : Math.round((completed / total) * 100);
     }
 
     // Actions
