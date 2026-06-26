@@ -89,10 +89,6 @@ class Store {
         localStorage.setItem(STORAGE_KEY, JSON.stringify(this.data));
         // Dispatch custom event to notify UI
         window.dispatchEvent(new Event('storeUpdated'));
-        // Push to Firebase if sync is active
-        if (window.syncManager && window.syncManager.isLinked()) {
-            window.syncManager.pushData(this.data);
-        }
     }
 
     checkReset() {
