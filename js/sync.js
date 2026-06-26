@@ -84,6 +84,21 @@ async function initSync() {
              const remoteData = snapshot.val();
              if (remoteData && window.store) {
                  isSyncingFromRemote = true;
+                 
+                 const localDateStr = window.store.data.today.date;
+                 const remoteDateStr = remoteData.today ? remoteData.today.date : null;
+                 const localDate = new Date(localDateStr);
+                 const remoteDate = remoteDateStr ? new Date(remoteDateStr) : new Date(0);
+                 
+                 let mergedToday = remoteData.today;
+                 let needsPush = false;
+                 
+                 // If the local date is newer than the remote date, don't overwrite local today
+                 if (localDate > remoteDate) {
+                     mergedToday = window.store.data.today;
+                     needsPush = true;
+                 }
+
                  window.store.data = {
                      settings: {
                          ...window.store.data.settings,
@@ -91,11 +106,15 @@ async function initSync() {
                          theme: window.store.data.settings.theme // keep local theme
                      },
                      stats: { ...window.store.data.stats, ...remoteData.stats },
-                     today: { ...window.store.data.today, ...remoteData.today }
+                     today: { ...window.store.data.today, ...mergedToday }
                  };
                  localStorage.setItem('azkar_companion_data', JSON.stringify(window.store.data));
                  window.dispatchEvent(new Event('storeUpdated'));
                  isSyncingFromRemote = false;
+                 
+                 if (needsPush) {
+                     pushData(window.store.data);
+                 }
              }
              console.log('[Sync] Loaded existing global data from Firebase');
         }
