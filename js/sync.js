@@ -54,7 +54,7 @@ function startListening(pin) {
         activeListenerRef = null;
     }
 
-    const dataRef = ref(db, `rooms/${pin}/data`);
+    const dataRef = ref(db, `Traker/${pin}/data`);
     activeListenerRef = dataRef;
 
     onValue(dataRef, (snapshot) => {
@@ -75,7 +75,7 @@ async function createPin() {
     const pin = generatePin();
 
     const currentData = window.store ? window.store.data : null;
-    await set(ref(db, `rooms/${pin}`), {
+    await set(ref(db, `Traker/${pin}`), {
         data: currentData,
         createdAt: Date.now(),
         lastUpdated: Date.now()
@@ -93,7 +93,7 @@ async function linkPin(pin) {
 
     await initFirebase();
 
-    const roomRef = ref(db, `rooms/${pin}`);
+    const roomRef = ref(db, `Traker/${pin}`);
     const snapshot = await get(roomRef);
 
     if (!snapshot.exists()) {
@@ -127,7 +127,7 @@ async function linkPin(pin) {
 async function pushData(data) {
     if (!currentPin || isSyncingFromRemote || !db) return;
     try {
-        await set(ref(db, `rooms/${currentPin}`), {
+        await set(ref(db, `Traker/${currentPin}`), {
             data: data,
             lastUpdated: Date.now()
         });
