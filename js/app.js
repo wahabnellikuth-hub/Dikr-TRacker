@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         isha: { en: 'Isha', ar: 'العشاء' }
     };
     let isInitialLoad = true;
+    let isSyncing = false;
     const completedSectionsThisSession = new Set();
     let hasCelebratedQuranExtra = false;
 
@@ -39,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
             badge.classList.remove('hidden');
             if (!completedSectionsThisSession.has(id)) {
                 completedSectionsThisSession.add(id);
-                if (!isInitialLoad && window.confetti) {
+                if (!isInitialLoad && !isSyncing && window.confetti) {
                     confetti({
                         particleCount: 50,
                         spread: 60,
@@ -497,7 +498,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         
         // Favour celebration if above 7
-        if (quranPages > 7 && !hasCelebratedQuranExtra && !isInitialLoad) {
+        if (quranPages > 7 && !hasCelebratedQuranExtra && !isInitialLoad && !isSyncing) {
             hasCelebratedQuranExtra = true;
             if (window.confetti) {
                 const duration = 3000;
@@ -683,13 +684,13 @@ document.addEventListener('DOMContentLoaded', () => {
         if (percentage === 100 && totalItems > 0) {
             if (!completedSectionsThisSession.has('all')) {
                 completedSectionsThisSession.add('all');
-                if (window.confetti) {
+                if (!isInitialLoad && !isSyncing && window.confetti) {
                     confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ['#2e7d32', '#d4af37', '#ffffff'], zIndex: 3000 });
                     setTimeout(() => confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 }, colors: ['#2e7d32', '#d4af37', '#ffffff'], zIndex: 3000 }), 500);
                 }
                 
                 const celebrationModal = document.getElementById('celebration-modal');
-                if (celebrationModal) {
+                if (!isInitialLoad && !isSyncing && celebrationModal) {
                     celebrationModal.classList.remove('hidden');
                     setTimeout(() => {
                         celebrationModal.style.opacity = '1';
@@ -782,6 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function attachRemoteChangeListener() {
         window.syncManager.onRemoteChange((remoteData) => {
+            isSyncing = true;
             const localDateStr = window.store.data.today.date;
             const remoteDateStr = remoteData.today ? remoteData.today.date : null;
             const localDate = new Date(localDateStr);
@@ -804,6 +806,8 @@ document.addEventListener('DOMContentLoaded', () => {
             if (localDate > remoteDate) {
                 window.syncManager.pushData(window.store.data);
             }
+            
+            setTimeout(() => { isSyncing = false; }, 100);
         });
     }
 
