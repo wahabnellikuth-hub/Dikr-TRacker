@@ -21,6 +21,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Data structures
     const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    const prayerNames = {
+        fajr: { en: 'Fajr', ar: 'الفجر' },
+        dhuhr: { en: 'Dhuhr', ar: 'الظهر' },
+        asr: { en: 'Asr', ar: 'العصر' },
+        maghrib: { en: 'Maghrib', ar: 'المغرب' },
+        isha: { en: 'Isha', ar: 'العشاء' }
+    };
     let isInitialLoad = true;
     const completedSectionsThisSession = new Set();
     let hasCelebratedQuranExtra = false;
@@ -116,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             card.className = 'card prayer-card';
             card.id = `card-prayer-${prayer}`;
             
-            const label = prayer.charAt(0).toUpperCase() + prayer.slice(1);
+            const label = `${prayerNames[prayer].en} - <span class="arabic-text" style="font-size: 1.1em; font-weight: normal;">${prayerNames[prayer].ar}</span>`;
             
             card.innerHTML = `
                 <div class="prayer-header">
@@ -158,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
         container.innerHTML = '';
         
         prayers.forEach(prayer => {
-            const label = prayer.charAt(0).toUpperCase() + prayer.slice(1);
+            const label = `${prayerNames[prayer].en} - <span class="arabic-text" style="font-size: 1.1em; font-weight: normal;">${prayerNames[prayer].ar}</span>`;
             const card = document.createElement('div');
             card.className = 'card counter-card';
             card.id = `card-salawat-${prayer}`;
@@ -291,7 +298,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="tick-button ${task.completed ? 'completed' : ''}" id="btn-tick-custom-${task.id}" style="width:24px;height:24px;min-width:24px;">
                         <i data-lucide="check"></i>
                     </button>
-                    <span style="${task.completed ? 'text-decoration: line-through; opacity: 0.7;' : ''}">${task.name}</span>
+                    <span>${task.name}</span>
                 </div>
                 <button class="action-button outline" style="padding: 0.25rem 0.5rem; color: var(--danger); border-color: var(--danger);" id="btn-del-custom-${task.id}">
                     <i data-lucide="trash-2" style="width: 16px; height: 16px;"></i>
@@ -334,6 +341,46 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- Static Event Listeners ---
+    const btnAddOneSalawat = document.getElementById('btn-add-one-salawat');
+    if (btnAddOneSalawat) {
+        btnAddOneSalawat.addEventListener('click', () => {
+            window.store.addExtraSalawat(1);
+        });
+    }
+
+    const btnCloseCelebration = document.getElementById('btn-close-celebration');
+    if (btnCloseCelebration) {
+        btnCloseCelebration.addEventListener('click', () => {
+            const modal = document.getElementById('celebration-modal');
+            if (modal) {
+                modal.style.opacity = '0';
+                modal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+                setTimeout(() => modal.classList.add('hidden'), 300);
+            }
+        });
+    }
+
+    const btnSubOneSalawat = document.getElementById('btn-sub-one-salawat');
+    if (btnSubOneSalawat) {
+        btnSubOneSalawat.addEventListener('click', () => {
+            window.store.addExtraSalawat(-1);
+        });
+    }
+
+
+    const btnAddExtraSalawat = document.getElementById('btn-add-extra-salawat');
+    if (btnAddExtraSalawat) {
+        btnAddExtraSalawat.addEventListener('click', () => {
+            const val = prompt('Enter extra Salawat amount (e.g., 100):', '100');
+            if (val !== null) {
+                const num = parseInt(val, 10);
+                if (!isNaN(num) && num > 0) {
+                    window.store.addExtraSalawat(num);
+                }
+            }
+        });
+    }
+
     document.getElementById('btn-add-custom-task').addEventListener('click', () => {
         const name = prompt('Enter task name:');
         if (name && name.trim() !== '') {
@@ -343,12 +390,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-tick-badr').addEventListener('click', () => window.store.toggleBadr());
     document.getElementById('btn-tick-ratib').addEventListener('click', () => window.store.toggleRatib());
     
-
-    document.getElementById('btn-toggle-translation').addEventListener('click', (e) => {
-        const trans = document.getElementById('ayah-translation');
-        trans.classList.toggle('hidden');
-        e.target.textContent = trans.classList.contains('hidden') ? 'Show Translation' : 'Hide Translation';
-    });
+    document.getElementById('btn-charity').addEventListener('click', () => window.store.toggleCharity());
+    document.getElementById('btn-help').addEventListener('click', () => window.store.toggleHelp());
+    
 
     // PDF Handling
     const openPdf = (type) => {
@@ -532,13 +576,42 @@ document.addEventListener('DOMContentLoaded', () => {
             cardRatib.classList.remove('completed');
         }
 
+        // Charity and Help
+        const btnCharity = document.getElementById('btn-charity');
+        if (btnCharity) {
+            const icon = btnCharity.querySelector('svg') || btnCharity.querySelector('i');
+            if (data.today.charity) {
+                btnCharity.style.background = 'var(--accent)';
+                btnCharity.style.borderColor = 'var(--accent)';
+                if (icon) icon.style.color = 'white';
+            } else {
+                btnCharity.style.background = 'var(--surface)';
+                btnCharity.style.borderColor = 'var(--border)';
+                if (icon) icon.style.color = 'var(--text-main)';
+            }
+        }
+        
+        const btnHelp = document.getElementById('btn-help');
+        if (btnHelp) {
+            const icon = btnHelp.querySelector('svg') || btnHelp.querySelector('i');
+            if (data.today.help) {
+                btnHelp.style.background = 'var(--accent)';
+                btnHelp.style.borderColor = 'var(--accent)';
+                if (icon) icon.style.color = 'white';
+            } else {
+                btnHelp.style.background = 'var(--surface)';
+                btnHelp.style.borderColor = 'var(--border)';
+                if (icon) icon.style.color = 'var(--text-main)';
+            }
+        }
+
         // Stats
         document.getElementById('current-streak').textContent = data.stats.currentStreak;
         document.getElementById('longest-streak').textContent = data.stats.longestStreak;
         
-        const totalQuranPagesEl = document.getElementById('total-quran-pages');
-        if (totalQuranPagesEl) {
-            totalQuranPagesEl.textContent = data.stats.totalQuranPages || 0;
+        const totalSalawatEl = document.getElementById('total-salawat');
+        if (totalSalawatEl) {
+            totalSalawatEl.textContent = data.stats.totalSalawat || 0;
         }
         
         const topStreakVal = document.getElementById('top-streak-val');
@@ -558,7 +631,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function calculateOverallProgress() {
         const data = window.store.data;
         const customTasks = data.today.customTasks || [];
-        let totalItems = 5 + 1 + 5 + 2 + 2 + 1 + customTasks.length + 1; // +1 for Qur'an reading
+        let totalItems = 10 + 1 + 5 + 2 + 2 + 1 + customTasks.length + 1; // 10 prayers, 1 badr, 5 salawat, 2 dhikr, 2 ayah, 1 ratib, +1 Quran
         let completedItems = 0;
 
         const allPrayers = prayers.every(p => data.today.prayers[p].completed);
@@ -583,7 +656,10 @@ document.addEventListener('DOMContentLoaded', () => {
         const allCustom = customTasks.length > 0 && customTasks.every(t => t.completed);
         checkSectionCompletion('badge-custom', customTasks.length > 0 ? allCustom : false);
 
-        prayers.forEach(p => { if (data.today.prayers[p].completed) completedItems++; });
+        prayers.forEach(p => { 
+            if (data.today.prayers[p].completed) completedItems++; 
+            if (data.today.prayers[p].jamaah) completedItems++; 
+        });
         if (data.today.asmaulBadr) completedItems++;
         prayers.forEach(p => { if (data.today.salawat[p] >= 50) completedItems++; });
         if (data.today.quranPages >= 7) completedItems++;
@@ -592,6 +668,14 @@ document.addEventListener('DOMContentLoaded', () => {
         if (data.today.protectionAyah.fajr >= 3) completedItems++;
         if (data.today.protectionAyah.maghrib >= 3) completedItems++;
         if (data.today.ratib) completedItems++;
+        if (data.today.charity) {
+            completedItems++;
+            totalItems++;
+        }
+        if (data.today.help) {
+            completedItems++;
+            totalItems++;
+        }
         customTasks.forEach(t => { if (t.completed) completedItems++; });
 
         const percentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
@@ -599,13 +683,31 @@ document.addEventListener('DOMContentLoaded', () => {
         if (percentage === 100 && totalItems > 0) {
             if (!completedSectionsThisSession.has('all')) {
                 completedSectionsThisSession.add('all');
-                if (!isInitialLoad && window.confetti) {
-                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ['#2e7d32', '#d4af37', '#ffffff'], zIndex: 1000 });
-                    setTimeout(() => confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 }, colors: ['#2e7d32', '#d4af37', '#ffffff'], zIndex: 1000 }), 500);
+                if (window.confetti) {
+                    confetti({ particleCount: 150, spread: 100, origin: { y: 0.5 }, colors: ['#2e7d32', '#d4af37', '#ffffff'], zIndex: 3000 });
+                    setTimeout(() => confetti({ particleCount: 100, spread: 120, origin: { y: 0.6 }, colors: ['#2e7d32', '#d4af37', '#ffffff'], zIndex: 3000 }), 500);
+                }
+                
+                const celebrationModal = document.getElementById('celebration-modal');
+                if (celebrationModal) {
+                    celebrationModal.classList.remove('hidden');
+                    setTimeout(() => {
+                        celebrationModal.style.opacity = '1';
+                        celebrationModal.querySelector('.modal-content').style.transform = 'scale(1)';
+                    }, 50);
+
+                    setTimeout(() => {
+                        celebrationModal.style.opacity = '0';
+                        celebrationModal.querySelector('.modal-content').style.transform = 'scale(0.95)';
+                        setTimeout(() => celebrationModal.classList.add('hidden'), 300);
+                    }, 3000);
                 }
             }
             progressText.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem;"><i data-lucide="award" style="width:24px;height:24px;color:var(--gold);stroke:var(--gold);"></i><span style="font-size:0.875rem;">100%</span></div>';
             lucide.createIcons();
+            setTimeout(() => {
+                progressText.textContent = '100%';
+            }, 3000);
         } else {
             completedSectionsThisSession.delete('all');
             progressText.textContent = `${percentage}%`;

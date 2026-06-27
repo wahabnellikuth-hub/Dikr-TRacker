@@ -6,6 +6,8 @@
     <title>Daily Azkar Companion</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#ffffff">
+    <link rel="icon" type="image/png" href="images/logo.png">
+    <link rel="apple-touch-icon" href="images/logo.png">
     
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +27,7 @@
         <header class="dashboard">
             <div class="header-top" style="display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 1.5rem;">
                 <div class="greeting" style="text-align: center;">
+                    <img src="images/logo.png" alt="Adkar Logo" style="width: 72px; height: 72px; margin-bottom: 0.75rem; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
                     <h1 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 0.25rem;">It's a Beautiful Day!</h1>
                     <p id="current-date" class="date-text" style="color: rgba(255,255,255,0.9); font-size: 0.875rem; margin-bottom: 1rem;"></p>
                 </div>
@@ -117,7 +120,7 @@
                 <h3 class="section-title">Protection Dhikr <span id="badge-dhikr" class="section-badge hidden"><i data-lucide="star" style="fill: var(--gold); stroke: var(--gold);"></i></span></h3>
                 <div class="card dhikr-text-card" style="margin-bottom: 1rem;">
                     <p class="arabic-text" style="font-size: 1.25rem; text-align: right; line-height: 1.8;">
-                        اللهم رب الناس، أذهب البأس، واشف، أنت الشافي لا شفاء إلا شفاؤك، شفاءً لا يغادر سقماً، أَلَمْ أَعْهَدْ إِلَيْكُمْ يَا بَنِي آدَمَ أَن لَّا تَعْبُدُوا الشَّيْطَانَ ۖ إِنَّهُ لَكُمْ عَدُوٌّ مُّبِينٌ
+                        اللهم رب الناس، أذهب البأس، واشف، أنت الشافي لا شفاء إلا شفاؤك، شفاءً لا يغادر سقماً ولا ألما، أَلَمْ أَعْهَدْ إِلَيْكُمْ يَا بَنِي آدَمَ أَن لَّا تَعْبُدُوا الشَّيْطَانَ ۖ إِنَّهُ لَكُمْ عَدُوٌّ مُّبِينٌ
                     </p>
                 </div>
                 <div class="cards-grid" id="dhikr-container">
@@ -135,12 +138,7 @@
                     <div class="cards-grid" id="ayah-counters-container" style="margin-top: 1rem;">
                         <!-- Counters injected by JS -->
                     </div>
-                    <div class="ayah-actions" style="justify-content: center;">
-                        <button class="text-button" id="btn-toggle-translation">Show Translation</button>
-                    </div>
-                    <p class="translation-text hidden" id="ayah-translation">
-                        There has certainly come to you a Messenger from among yourselves. Grievous to him is what you suffer; [he is] concerned over you and to the believers is kind and merciful. (128) But if they turn away, [O Muhammad], say, "Sufficient for me is Allah; there is no deity except Him. On Him I have relied, and He is the Lord of the Great Throne." (129)
-                    </p>
+
                 </div>
             </section>
 
@@ -161,6 +159,19 @@
                     </div>
                 </div>
             </section>
+            <!-- Section 6.5: Good Deeds -->
+            <section class="section" id="good-deeds-section">
+                <h3 class="section-title">Good Deeds <span id="badge-deeds" class="section-badge hidden"><i data-lucide="star" style="fill: var(--gold); stroke: var(--gold);"></i></span></h3>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem;">
+                    <button id="btn-charity" title="Charity" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                        <i data-lucide="heart-handshake" style="width: 36px; height: 36px; color: var(--text-main);"></i>
+                    </button>
+                    <button id="btn-help" title="Help Others" style="width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--border); background: var(--surface); display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                        <i data-lucide="hand-heart" style="width: 36px; height: 36px; color: var(--text-main);"></i>
+                    </button>
+                </div>
+            </section>
+
 
             <!-- Section 7: Custom Tasks -->
             <section class="section" id="custom-tasks-section">
@@ -191,9 +202,22 @@
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-info">
-                            <span class="stat-label">Total Qur'an Pages</span>
-                            <span class="stat-value" id="total-quran-pages">0</span>
+                        <div class="stat-info" style="width: 100%;">
+                            <span class="stat-label">Total Salawat</span>
+                            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-top: 0.25rem;">
+                                <span class="stat-value" id="total-salawat">0</span>
+                                <div style="display: flex; gap: 0.25rem;">
+                                    <button class="action-button outline small" id="btn-sub-one-salawat" style="padding: 0.25rem 0.5rem; font-size: 0.85rem; font-weight: 600;" title="Subtract 1">
+                                        -1
+                                    </button>
+                                    <button class="action-button outline small" id="btn-add-one-salawat" style="padding: 0.25rem 0.5rem; font-size: 0.85rem; font-weight: 600;" title="Add 1">
+                                        +1
+                                    </button>
+                                    <button class="action-button outline small" id="btn-add-extra-salawat" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;" title="Add custom amount">
+                                        <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i> Custom
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <!-- More stats added via JS -->
@@ -246,6 +270,25 @@
                 <span>Settings</span>
             </button>
         </nav>
+    </div>
+
+    <!-- Celebration Modal -->
+    <div id="celebration-modal" class="hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 2000; display: flex; justify-content: center; align-items: center; padding: 1.5rem; opacity: 0; transition: opacity 0.3s ease;">
+        <div class="modal-content" style="background: var(--bg); border-radius: 16px; padding: 2rem; text-align: center; max-width: 400px; width: 100%; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04); transform: scale(0.95); transition: transform 0.3s ease;">
+            <div style="background: linear-gradient(135deg, var(--accent), #b7791f); width: 80px; height: 80px; border-radius: 50%; display: flex; justify-content: center; align-items: center; margin: 0 auto 1.5rem auto; box-shadow: 0 4px 10px rgba(212, 175, 55, 0.3);">
+                <i data-lucide="award" style="width: 40px; height: 40px; color: white;"></i>
+            </div>
+            <h2 style="font-size: 1.5rem; font-weight: 700; color: var(--text); margin-bottom: 0.5rem;">Masha'Allah!</h2>
+            <p style="color: var(--text-main); font-size: 1rem; margin-bottom: 1.5rem; line-height: 1.5;">You've achieved 100% of your daily goals today!</p>
+            <div style="background: var(--surface); padding: 1.25rem; border-radius: 12px; margin-bottom: 1.5rem; border-left: 4px solid var(--gold);">
+                <p class="arabic-text" style="color: #ffffff; font-size: 1.35rem; text-align: center; margin-bottom: 0.75rem; line-height: 1.8;">
+                    أَحَبُّ الأَعْمَالِ إِلَى اللَّهِ أَدْوَمُهَا وَإِنْ قَلَّ
+                </p>
+                <p style="color: var(--text-muted); font-size: 0.95rem; font-style: italic; line-height: 1.6;">"The most beloved of deeds to Allah are those that are most consistent, even if they are small."</p>
+                <p style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.5rem; text-align: right;">— Prophet Muhammad (ﷺ)</p>
+            </div>
+            <button id="btn-close-celebration" class="action-button primary" style="width: 100%; padding: 0.75rem; font-size: 1rem; border-radius: 12px;">Alhamdulillah</button>
+        </div>
     </div>
 
     <script type="module" src="js/sync.js"></script>

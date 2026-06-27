@@ -42,6 +42,8 @@ const defaultState = {
         },
         protectionAyah: { fajr: 0, maghrib: 0 },
         ratib: false,
+        charity: false,
+        help: false,
         customTasks: [],
         allCompletedForToday: false
     }
@@ -159,6 +161,8 @@ class Store {
             dhikr: { morning: 0, evening: 0 },
             protectionAyah: { fajr: 0, maghrib: 0 },
             ratib: false,
+            charity: false,
+            help: false,
             customTasks: resetCustomTasks,
             allCompletedForToday: false
         };
@@ -230,8 +234,9 @@ class Store {
         let completed = 0;
 
         const prayers = Object.values(this.data.today.prayers);
-        total += prayers.length;
+        total += prayers.length * 2; // 1 for completed, 1 for jamaah
         completed += prayers.filter(p => p.completed).length;
+        completed += prayers.filter(p => p.jamaah).length;
 
         total += 1;
         if (this.data.today.asmaulBadr) completed += 1;
@@ -253,6 +258,15 @@ class Store {
 
         total += 1;
         if ((this.data.today.quranPages || 0) >= 7) completed += 1;
+
+        if (this.data.today.charity) {
+            total += 1;
+            completed += 1;
+        }
+        if (this.data.today.help) {
+            total += 1;
+            completed += 1;
+        }
 
         if (Array.isArray(this.data.today.customTasks) && this.data.today.customTasks.length > 0) {
             total += this.data.today.customTasks.length;
@@ -314,6 +328,18 @@ class Store {
         this.saveData();
     }
 
+    addExtraSalawat(amount) {
+        if (isNaN(amount) || amount === 0) return;
+        this.data.stats.totalSalawat += amount;
+        if (this.data.stats.totalSalawat < 0) this.data.stats.totalSalawat = 0;
+        this.saveData();
+    }
+
+    resetTotalSalawat() {
+        this.data.stats.totalSalawat = 0;
+        this.saveData();
+    }
+
     updateDhikr(type, delta) {
         let current = this.data.today.dhikr[type];
         current += delta;
@@ -334,6 +360,16 @@ class Store {
 
     toggleRatib() {
         this.data.today.ratib = !this.data.today.ratib;
+        this.saveData();
+    }
+
+    toggleCharity() {
+        this.data.today.charity = !this.data.today.charity;
+        this.saveData();
+    }
+
+    toggleHelp() {
+        this.data.today.help = !this.data.today.help;
         this.saveData();
     }
 
