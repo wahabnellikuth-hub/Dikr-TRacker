@@ -22,7 +22,25 @@
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
-    <div id="app" class="app-container">
+    <!-- Login Screen -->
+    <div id="login-screen" class="login-container">
+        <div class="login-content card">
+            <img src="images/logo.png" alt="Adkar Logo" class="login-logo">
+            <h1 class="login-title">Daily Azkar Companion</h1>
+            <p class="login-subtitle">Please sign in to access your personal tracker and sync your progress.</p>
+            
+            <div id="login-loading" class="login-loading">
+                <i data-lucide="loader" class="spinner"></i>
+                <span>Checking authentication...</span>
+            </div>
+
+            <button class="action-button primary hidden" id="btn-login-screen-signin" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
+                <i data-lucide="log-in" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Sign in with Google
+            </button>
+        </div>
+    </div>
+
+    <div id="app" class="app-container hidden">
         <!-- Dashboard Section -->
         <header class="dashboard">
             <div class="header-top" style="display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 1.5rem;">
@@ -208,10 +226,10 @@
                                 <span class="stat-value" id="total-salawat">0</span>
                                 <div style="display: flex; gap: 0.25rem;">
                                     <button class="action-button outline small" id="btn-sub-one-salawat" style="padding: 0.25rem 0.5rem; font-size: 0.85rem; font-weight: 600;" title="Subtract 1">
-                                        -1
+                                        -
                                     </button>
                                     <button class="action-button outline small" id="btn-add-one-salawat" style="padding: 0.25rem 0.5rem; font-size: 0.85rem; font-weight: 600;" title="Add 1">
-                                        +1
+                                        +
                                     </button>
                                     <button class="action-button outline small" id="btn-add-extra-salawat" style="padding: 0.25rem 0.5rem; font-size: 0.75rem; display: flex; align-items: center; gap: 0.25rem;" title="Add custom amount">
                                         <i data-lucide="edit-3" style="width: 14px; height: 14px;"></i>
@@ -235,6 +253,23 @@
             <section class="section hidden" id="settings-section">
                 <h3 class="section-title">Settings</h3>
                 <div class="card settings-card">
+                    <div class="setting-item" id="auth-section">
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span>Account & Sync</span>
+                                <button class="action-button primary" id="btn-google-signin">
+                                    <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Sign in with Google
+                                </button>
+                            </div>
+                            <div id="user-profile" class="hidden" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--bg-main); border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                    <img id="user-avatar" src="" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%;">
+                                    <span id="user-name" style="font-size: 0.9rem; font-weight: 500;"></span>
+                                </div>
+                                <button class="action-button outline" id="btn-google-signout" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Sign Out</button>
+                            </div>
+                        </div>
+                    </div>
                     <div class="setting-item">
                         <span>Reset Time</span>
                         <select id="reset-time-select" class="select-input">

@@ -397,18 +397,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // PDF Handling
     const openPdf = (type) => {
-        const typeName = type === 'badr' ? 'Asmaul Badr' : 'Ratib al-Haddad';
-        let link = window.store.data.settings.pdfLinks[type];
-        
-        if (!link) {
-            link = prompt(`Please enter the PDF link for ${typeName}:`, "https://");
-            if (link && link.trim() !== "" && link.trim() !== "https://") {
-                window.store.setPdfLink(type, link.trim());
-            } else {
-                return; // User cancelled or entered empty
-            }
-        }
-        
+        const link = type === 'badr' ? 'pdfs/Asmaul%20Badr.pdf.pdf' : 'pdfs/Haddad.pdf.pdf';
         // Open the PDF in a new tab natively
         window.open(link, '_blank');
     };
@@ -819,6 +808,53 @@ document.addEventListener('DOMContentLoaded', () => {
                     attachRemoteChangeListener();
                 }
             });
+
+            // Bind Auth Buttons
+            const btnSignIn = document.getElementById('btn-google-signin');
+            const btnLoginScreenSignIn = document.getElementById('btn-login-screen-signin');
+            const btnSignOut = document.getElementById('btn-google-signout');
+            const userProfile = document.getElementById('user-profile');
+            const userAvatar = document.getElementById('user-avatar');
+            const userName = document.getElementById('user-name');
+            
+            const loginScreen = document.getElementById('login-screen');
+            const appContainer = document.getElementById('app');
+            const loginLoading = document.getElementById('login-loading');
+
+            const signInHandler = () => window.syncManager.signIn();
+
+            if (btnSignIn) btnSignIn.addEventListener('click', signInHandler);
+            if (btnLoginScreenSignIn) btnLoginScreenSignIn.addEventListener('click', signInHandler);
+            
+            if (btnSignOut) {
+                btnSignOut.addEventListener('click', () => {
+                    window.syncManager.signOut();
+                });
+            }
+
+            // Handle Auth State Changes
+            window.syncManager.onAuthChange((user) => {
+                if (user) {
+                    if (loginScreen) loginScreen.classList.add('hidden');
+                    if (appContainer) appContainer.classList.remove('hidden');
+
+                    if (btnSignIn) btnSignIn.classList.add('hidden');
+                    if (userProfile) userProfile.classList.remove('hidden');
+                    if (userAvatar) userAvatar.src = user.photoURL || '';
+                    if (userName) userName.textContent = user.displayName || 'User';
+                } else {
+                    if (loginScreen) loginScreen.classList.remove('hidden');
+                    if (appContainer) appContainer.classList.add('hidden');
+                    if (loginLoading) loginLoading.classList.add('hidden');
+                    if (btnLoginScreenSignIn) btnLoginScreenSignIn.classList.remove('hidden');
+
+                    if (btnSignIn) btnSignIn.classList.remove('hidden');
+                    if (userProfile) userProfile.classList.add('hidden');
+                    if (userAvatar) userAvatar.src = '';
+                    if (userName) userName.textContent = '';
+                }
+            });
+
         } else if (retries > 0) {
             setTimeout(() => waitForSyncManager(retries - 1), 150);
         }

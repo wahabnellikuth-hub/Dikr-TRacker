@@ -1,9 +1,8 @@
-// js/sync.js — Firebase Global Sync Module
-// No auth required — uses open rules on Traker/ path
-// Exposes window.syncManager for a single, global dataset
+// js/sync.js — Firebase Multi-User Sync Module
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA8cBy7JNEhAuucBHwTOsYZc_EkW3wOa-c",
@@ -16,71 +15,98 @@ const firebaseConfig = {
     measurementId: "G-MZH4N8E32M"
 };
 
+let app = null;
 let db = null;
+let auth = null;
+let currentUser = null;
 let activeListenerRef = null;
 let isSyncingFromRemote = false;
 let onChangeCallback = null;
-
-// The single, hardcoded path for the global database
-const GLOBAL_DATA_PATH = 'Traker/globalData';
-
-// ─── Init Firebase (no auth needed) ──────────────────────────────────────────
+let onAuthChangeCallback = null;
 
 function initFirebase() {
-    if (!db) {
+    if (!app) {
         try {
-            const app = initializeApp(firebaseConfig);
+            app = initializeApp(firebaseConfig);
             db = getDatabase(app);
+            auth = getAuth(app);
+            
+            // Listen for auth state changes
+            onAuthStateChanged(auth, (user) => {
+                currentUser = user;
+                if (user) {
+                    console.log('[Sync] User signed in:', user.displayName);
+                    startSyncForUser(user.uid);
+                } else {
+                    console.log('[Sync] User signed out.');
+                    stopSync();
+                }
+                
+                if (onAuthChangeCallback) {
+                    onAuthChangeCallback(user);
+                }
+            });
             console.log('[Sync] Firebase initialized ✅');
         } catch (e) {
             console.error('[Sync] Firebase init failed:', e.message);
-            throw e;
         }
     }
-    return db;
 }
 
-// ─── Listener ────────────────────────────────────────────────────────────────
+// ─── Authentication ──────────────────────────────────────────────────────────
 
-function startListening() {
-    if (activeListenerRef) {
-        off(activeListenerRef);
-        activeListenerRef = null;
-    }
-    const dataRef = ref(db, `${GLOBAL_DATA_PATH}/data`);
-    activeListenerRef = dataRef;
-
-    onValue(dataRef, (snapshot) => {
-        if (isSyncingFromRemote) return;
-        const remoteData = snapshot.val();
-        if (remoteData && onChangeCallback) {
-            isSyncingFromRemote = true;
-            onChangeCallback(remoteData);
-            isSyncingFromRemote = false;
-        }
-    }, (error) => {
-        console.error('[Sync] Listener error:', error.message);
-    });
-}
-
-// ─── Public API ──────────────────────────────────────────────────────────────
-
-async function initSync() {
+async function signIn() {
+    initFirebase();
+    const provider = new GoogleAuthProvider();
     try {
-        initFirebase();
-        
-        // Check if data exists, if not, push current local data to initialize
-        const snapshot = await get(ref(db, `${GLOBAL_DATA_PATH}/data`));
+        await signInWithPopup(auth, provider);
+    } catch (error) {
+        console.error('[Sync] Sign-in error:', error.message);
+        alert('Sign-in failed: ' + error.message);
+    }
+}
+
+async function signUserOut() {
+    if (auth) {
+        try {
+            await signOut(auth);
+        } catch (error) {
+            console.error('[Sync] Sign-out error:', error.message);
+        }
+    }
+}
+
+function onAuthChange(callback) {
+    onAuthChangeCallback = callback;
+    // If auth is already initialized and we have a user, trigger immediately
+    if (auth && auth.currentUser !== undefined) {
+        callback(auth.currentUser);
+    }
+}
+
+// ─── Sync Logic ──────────────────────────────────────────────────────────────
+
+function getDataPath(uid) {
+    return `Traker/users/${uid}`;
+}
+
+async function startSyncForUser(uid) {
+    const dataPath = getDataPath(uid);
+    
+    try {
+        // Check if data exists on remote
+        const snapshot = await get(ref(db, `${dataPath}/data`));
         if (!snapshot.exists()) {
+             // Push current local data to initialize their cloud storage
              const currentData = window.store ? window.store.data : null;
-             await set(ref(db, GLOBAL_DATA_PATH), {
+             await set(ref(db, dataPath), {
                  data: currentData,
                  createdAt: Date.now(),
                  lastUpdated: Date.now()
              });
-             console.log('[Sync] Initialized global data in Firebase');
+             console.log('[Sync] Initialized user data in Firebase');
         } else {
-             // Merge remote data into local store initially
+             // Merge remote data into local store
              const remoteData = snapshot.val();
              if (remoteData && window.store) {
                  isSyncingFromRemote = true;
@@ -93,7 +119,6 @@ async function initSync() {
                  let mergedToday = remoteData.today;
                  let needsPush = false;
                  
-                 // If the local date is newer than the remote date, don't overwrite local today
                  if (localDate > remoteDate) {
                      mergedToday = window.store.data.today;
                      needsPush = true;
@@ -103,7 +128,7 @@ async function initSync() {
                      settings: {
                          ...window.store.data.settings,
                          ...remoteData.settings,
-                         theme: window.store.data.settings.theme // keep local theme
+                         theme: window.store.data.settings.theme
                      },
                      stats: { ...window.store.data.stats, ...remoteData.stats },
                      today: { ...window.store.data.today, ...mergedToday }
@@ -116,37 +141,65 @@ async function initSync() {
                      pushData(window.store.data);
                  }
              }
-             console.log('[Sync] Loaded existing global data from Firebase');
+             console.log('[Sync] Loaded user data from Firebase');
         }
         
-        startListening();
-        return true;
+        // Setup listener
+        if (activeListenerRef) {
+            off(activeListenerRef);
+        }
+        const dataRef = ref(db, `${dataPath}/data`);
+        activeListenerRef = dataRef;
+
+        onValue(dataRef, (snapshot) => {
+            if (isSyncingFromRemote) return;
+            const remoteData = snapshot.val();
+            if (remoteData && onChangeCallback) {
+                isSyncingFromRemote = true;
+                onChangeCallback(remoteData);
+                isSyncingFromRemote = false;
+            }
+        }, (error) => {
+            console.error('[Sync] Listener error:', error.message);
+        });
+        
     } catch (e) {
-        console.error('[Sync] Failed to init sync:', e.message);
-        return false;
+        console.error('[Sync] Failed to start sync:', e.message);
+    }
+}
+
+function stopSync() {
+    if (activeListenerRef) {
+        off(activeListenerRef);
+        activeListenerRef = null;
     }
 }
 
 async function pushData(data) {
-    if (isSyncingFromRemote || !db) return;
+    if (isSyncingFromRemote || !db || !currentUser) return;
     try {
-        await set(ref(db, GLOBAL_DATA_PATH), {
+        const dataPath = getDataPath(currentUser.uid);
+        await set(ref(db, dataPath), {
             data: data,
             lastUpdated: Date.now()
         });
-        console.log('[Sync] Global data pushed to Firebase ✅');
+        console.log('[Sync] User data pushed to Firebase ✅');
     } catch (e) {
         console.error('[Sync] Push failed ❌:', e.message);
     }
 }
 
-// Always consider it linked since it's a global database
 function isLinked() {
-    return true; 
+    return currentUser !== null; 
 }
 
 function onRemoteChange(callback) {
     onChangeCallback = callback;
+}
+
+async function initSync() {
+    initFirebase();
+    return true;
 }
 
 // ─── Expose globally ─────────────────────────────────────────────────────────
@@ -155,7 +208,10 @@ window.syncManager = {
     pushData,
     isLinked,
     onRemoteChange,
-    initSync
+    initSync,
+    signIn,
+    signOut: signUserOut,
+    onAuthChange
 };
 
 console.log('[Sync] sync.js loaded ✅');
