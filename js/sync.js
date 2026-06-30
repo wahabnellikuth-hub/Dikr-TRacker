@@ -2,7 +2,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA8cBy7JNEhAuucBHwTOsYZc_EkW3wOa-c",
@@ -34,12 +34,6 @@ function initFirebase() {
             // Explicitly set persistence to local so they stay logged in permanently
             setPersistence(auth, browserLocalPersistence).catch((error) => {
                 console.error('[Sync] Persistence error:', error.message);
-            });
-            
-            // Handle any errors from the redirect flow
-            getRedirectResult(auth).catch((error) => {
-                console.error('[Sync] Redirect sign-in error:', error.message);
-                alert('Sign-in failed: ' + error.message);
             });
             
             // Listen for auth state changes
@@ -74,7 +68,7 @@ async function signIn() {
         prompt: 'select_account'
     });
     try {
-        await signInWithRedirect(auth, provider);
+        await signInWithPopup(auth, provider);
     } catch (error) {
         console.error('[Sync] Sign-in error:', error.message);
         alert('Sign-in failed: ' + error.message);
