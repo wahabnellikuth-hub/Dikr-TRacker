@@ -69,6 +69,10 @@ function initFirebase() {
 async function signIn() {
     initFirebase();
     const provider = new GoogleAuthProvider();
+    // Force the Google login to show the account chooser screen
+    provider.setCustomParameters({
+        prompt: 'select_account'
+    });
     try {
         await signInWithRedirect(auth, provider);
     } catch (error) {
