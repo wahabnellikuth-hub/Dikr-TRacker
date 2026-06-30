@@ -786,7 +786,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             window.store.data = {
                 settings: { ...window.store.data.settings, ...remoteData.settings, theme: window.store.data.settings.theme },
-                stats: { ...window.store.data.stats, ...remoteData.stats },
+                stats: window.syncManager.mergeStats(window.store.data.stats, remoteData.stats),
                 today: { ...window.store.data.today, ...mergedToday }
             };
             localStorage.setItem('azkar_companion_data', JSON.stringify(window.store.data));

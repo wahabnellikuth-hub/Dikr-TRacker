@@ -2,7 +2,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getAuth, signInWithRedirect, getRedirectResult, GoogleAuthProvider, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA8cBy7JNEhAuucBHwTOsYZc_EkW3wOa-c",
@@ -30,6 +30,17 @@ function initFirebase() {
             app = initializeApp(firebaseConfig);
             db = getDatabase(app);
             auth = getAuth(app);
+            
+            // Explicitly set persistence to local so they stay logged in permanently
+            setPersistence(auth, browserLocalPersistence).catch((error) => {
+                console.error('[Sync] Persistence error:', error.message);
+            });
+            
+            // Handle any errors from the redirect flow
+            getRedirectResult(auth).catch((error) => {
+                console.error('[Sync] Redirect sign-in error:', error.message);
+                alert('Sign-in failed: ' + error.message);
+            });
             
             // Listen for auth state changes
             onAuthStateChanged(auth, (user) => {
@@ -59,7 +70,7 @@ async function signIn() {
     initFirebase();
     const provider = new GoogleAuthProvider();
     try {
-        await signInWithPopup(auth, provider);
+        await signInWithRedirect(auth, provider);
     } catch (error) {
         console.error('[Sync] Sign-in error:', error.message);
         alert('Sign-in failed: ' + error.message);
@@ -130,7 +141,7 @@ async function startSyncForUser(uid) {
                          ...remoteData.settings,
                          theme: window.store.data.settings.theme
                      },
-                     stats: { ...window.store.data.stats, ...remoteData.stats },
+                     stats: mergeStats(window.store.data.stats, remoteData.stats),
                      today: { ...window.store.data.today, ...mergedToday }
                  };
                  localStorage.setItem('azkar_companion_data', JSON.stringify(window.store.data));
@@ -197,6 +208,41 @@ function onRemoteChange(callback) {
     onChangeCallback = callback;
 }
 
+function mergeStats(localStats, remoteStats) {
+    if (!localStats) return remoteStats || {};
+    if (!remoteStats) return localStats || {};
+    
+    // Merge history array
+    const localHistory = localStats.history || [];
+    const remoteHistory = remoteStats.history || [];
+    const historyMap = new Map();
+    
+    localHistory.forEach(item => historyMap.set(item.date, item));
+    remoteHistory.forEach(item => {
+        const existing = historyMap.get(item.date);
+        if (existing) {
+            if (item.percent > existing.percent) {
+                historyMap.set(item.date, item);
+            }
+        } else {
+            historyMap.set(item.date, item);
+        }
+    });
+    
+    const mergedHistory = Array.from(historyMap.values()).sort((a, b) => new Date(a.date) - new Date(b.date));
+    
+    return {
+        ...localStats,
+        ...remoteStats,
+        currentStreak: Math.max(localStats.currentStreak || 0, remoteStats.currentStreak || 0),
+        longestStreak: Math.max(localStats.longestStreak || 0, remoteStats.longestStreak || 0),
+        totalSalawat: Math.max(localStats.totalSalawat || 0, remoteStats.totalSalawat || 0),
+        totalQuranPages: Math.max(localStats.totalQuranPages || 0, remoteStats.totalQuranPages || 0),
+        daysCompleted: Math.max(localStats.daysCompleted || 0, remoteStats.daysCompleted || 0),
+        history: mergedHistory
+    };
+}
+
 async function initSync() {
     initFirebase();
     return true;
@@ -211,7 +257,8 @@ window.syncManager = {
     initSync,
     signIn,
     signOut: signUserOut,
-    onAuthChange
+    onAuthChange,
+    mergeStats
 };
 
 console.log('[Sync] sync.js loaded ✅');
