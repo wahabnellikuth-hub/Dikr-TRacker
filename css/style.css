@@ -90,6 +90,13 @@ body {
     display: none !important;
 }
 
+/* Dynamic Banner Colors */
+.bg-severe { background: linear-gradient(135deg, #d32f2f, #9a0007, #b71c1c) !important; box-shadow: 0 10px 30px -10px #b71c1c !important; }
+.bg-warning { background: linear-gradient(135deg, #f57c00, #e65100, #bf360c) !important; box-shadow: 0 10px 30px -10px #e65100 !important; }
+.bg-good { background: linear-gradient(135deg, #81c784, #388e3c, #1b5e20) !important; box-shadow: 0 10px 30px -10px #388e3c !important; }
+.bg-happy { background: linear-gradient(135deg, var(--primary), #115e59, #064e3b) !important; }
+.bg-perfect { background: linear-gradient(135deg, #2e7d32, #d4af37, #b7791f) !important; box-shadow: 0 10px 30px -10px #d4af37 !important; }
+
 /* Header & Dashboard */
 .dashboard {
     padding: 2rem 1.5rem 2rem;
@@ -215,6 +222,19 @@ body {
     display: flex;
     flex-direction: column;
     gap: 1rem;
+    transition: all 0.5s ease;
+    border: 2px solid transparent;
+}
+
+.prayer-card.completed {
+    background: linear-gradient(to right, rgba(212, 175, 55, 0.05), transparent);
+    border: 2px solid var(--accent);
+    box-shadow: 0 0 15px rgba(212, 175, 55, 0.2);
+    transform: scale(1.02);
+}
+
+.prayer-card.completed .prayer-header h4 {
+    color: var(--accent);
 }
 
 .prayer-header {

@@ -37,16 +37,19 @@
             <button class="action-button primary hidden" id="btn-login-screen-signin" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
                 <i data-lucide="log-in" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Sign in with Google
             </button>
+            <button class="action-button outline hidden" id="btn-login-screen-skip" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md); margin-top: 1rem;">
+                Continue without Syncing
+            </button>
         </div>
     </div>
 
     <div id="app" class="app-container hidden">
         <!-- Dashboard Section -->
         <header class="dashboard">
-            <div class="header-top" style="display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 1.5rem;">
+            <div id="header-top-banner" class="header-top" style="display: flex; flex-direction: column; align-items: center; position: relative; margin-bottom: 1.5rem; transition: background 0.5s ease;">
                 <div class="greeting" style="text-align: center;">
                     <img src="images/logo.png" alt="Adkar Logo" style="width: 72px; height: 72px; margin-bottom: 0.75rem; border-radius: 16px; box-shadow: 0 4px 10px rgba(0,0,0,0.15);">
-                    <h1 style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 0.25rem;">It's a Beautiful Day!</h1>
+                    <h1 id="greeting-title" style="font-size: 1.75rem; font-weight: 700; color: white; margin-bottom: 0.25rem;">It's a Beautiful Day!</h1>
                     <p id="current-date" class="date-text" style="color: rgba(255,255,255,0.9); font-size: 0.875rem; margin-bottom: 1rem;"></p>
                 </div>
                 <div style="display: flex; justify-content: center;">
@@ -130,6 +133,16 @@
                         </button>
                         <button class="counter-btn plus" id="btn-quran-plus">+</button>
                     </div>
+                </div>
+                <!-- Surah Kahf section will be injected here if it's Friday -->
+                <div class="card hidden" id="card-surah-kahf" style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; padding: 1rem;">
+                    <div>
+                        <h4 style="margin: 0;">Recitation of Sura' Al Kahf</h4>
+                        <p style="margin: 0.25rem 0 0 0; font-size: 0.85rem; color: var(--text-muted);">Sunnah for Jumu'ah</p>
+                    </div>
+                    <button class="tick-button" id="btn-tick-kahf" aria-label="Mark Completed">
+                        <i data-lucide="check"></i>
+                    </button>
                 </div>
             </section>
 

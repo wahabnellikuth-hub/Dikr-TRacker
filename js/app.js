@@ -21,9 +21,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Data structures
     const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+    const isFriday = new Date().getDay() === 5;
     const prayerNames = {
         fajr: { en: 'Fajr', ar: 'الفجر' },
-        dhuhr: { en: 'Dhuhr', ar: 'الظهر' },
+        dhuhr: { en: isFriday ? 'Jumu\'ah' : 'Dhuhr', ar: isFriday ? 'الجمعة' : 'الظهر' },
         asr: { en: 'Asr', ar: 'العصر' },
         maghrib: { en: 'Maghrib', ar: 'المغرب' },
         isha: { en: 'Isha', ar: 'العشاء' }
@@ -150,6 +151,9 @@ document.addEventListener('DOMContentLoaded', () => {
             // Event Listeners
             card.querySelector(`#btn-tick-${prayer}`).addEventListener('click', () => {
                 window.store.togglePrayer(prayer);
+                if (window.store.data.today.prayers[prayer].completed && window.confetti) {
+                     confetti({ particleCount: 30, spread: 50, origin: { y: 0.7 }, colors: ['#2e7d32', '#d4af37'], zIndex: 1000 });
+                }
             });
             
             card.querySelectorAll(`input[name="jamaah-${prayer}"]`).forEach(radio => {
@@ -339,6 +343,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         });
+
+        const isFriday = new Date().getDay() === 5;
+        const kahfCard = document.getElementById('card-surah-kahf');
+        if (isFriday && kahfCard) {
+            kahfCard.classList.remove('hidden');
+            const btnTickKahf = document.getElementById('btn-tick-kahf');
+            if (btnTickKahf) {
+                btnTickKahf.addEventListener('click', () => {
+                    window.store.toggleKahf();
+                });
+            }
+        }
     }
 
     // --- Static Event Listeners ---
@@ -566,6 +582,19 @@ document.addEventListener('DOMContentLoaded', () => {
             cardRatib.classList.remove('completed');
         }
 
+        // Surah Kahf
+        const isFridayToday = new Date().getDay() === 5;
+        if (isFridayToday) {
+            const tickKahf = document.getElementById('btn-tick-kahf');
+            if (tickKahf) {
+                if (data.today.surahKahf) {
+                    tickKahf.classList.add('completed');
+                } else {
+                    tickKahf.classList.remove('completed');
+                }
+            }
+        }
+
         // Charity and Help
         const btnCharity = document.getElementById('btn-charity');
         if (btnCharity) {
@@ -646,31 +675,31 @@ document.addEventListener('DOMContentLoaded', () => {
         const allCustom = customTasks.length > 0 && customTasks.every(t => t.completed);
         checkSectionCompletion('badge-custom', customTasks.length > 0 ? allCustom : false);
 
-        prayers.forEach(p => { 
-            if (data.today.prayers[p].completed) completedItems++; 
-            if (data.today.prayers[p].jamaah) completedItems++; 
-        });
-        if (data.today.asmaulBadr) completedItems++;
-        prayers.forEach(p => { if (data.today.salawat[p] >= 50) completedItems++; });
-        if (data.today.quranPages >= 7) completedItems++;
-        if (data.today.dhikr.morning >= 11) completedItems++;
-        if (data.today.dhikr.evening >= 11) completedItems++;
-        if (data.today.protectionAyah.fajr >= 3) completedItems++;
-        if (data.today.protectionAyah.maghrib >= 3) completedItems++;
-        if (data.today.ratib) completedItems++;
-        if (data.today.charity) {
-            completedItems++;
-            totalItems++;
-        }
-        if (data.today.help) {
-            completedItems++;
-            totalItems++;
-        }
-        customTasks.forEach(t => { if (t.completed) completedItems++; });
-
-        const percentage = totalItems > 0 ? Math.round((completedItems / totalItems) * 100) : 0;
+        const percentage = window.store.getCompletionPercentage();
+        const headerBanner = document.getElementById('header-top-banner');
+        const greetingTitle = document.getElementById('greeting-title');
         
-        if (percentage === 100 && totalItems > 0) {
+        if (headerBanner && greetingTitle) {
+            headerBanner.className = 'header-top';
+            if (percentage < 25) {
+                headerBanner.classList.add('bg-severe');
+                greetingTitle.textContent = "Make Allah happy today doing Good Deeds";
+            } else if (percentage < 50) {
+                headerBanner.classList.add('bg-warning');
+                greetingTitle.textContent = "Allah gives you thoufeeq to stay on good path";
+            } else if (percentage < 75) {
+                headerBanner.classList.add('bg-good');
+                greetingTitle.textContent = "YOu made it.";
+            } else if (percentage < 100) {
+                headerBanner.classList.add('bg-happy');
+                greetingTitle.textContent = "what a thoufeeq";
+            } else {
+                headerBanner.classList.add('bg-perfect');
+                greetingTitle.textContent = "ENjouy the day";
+            }
+        }
+        
+        if (percentage === 100) {
             if (!completedSectionsThisSession.has('all')) {
                 completedSectionsThisSession.add('all');
                 if (!isInitialLoad && !isSyncing && window.confetti) {
@@ -812,6 +841,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // Bind Auth Buttons
             const btnSignIn = document.getElementById('btn-google-signin');
             const btnLoginScreenSignIn = document.getElementById('btn-login-screen-signin');
+            const btnLoginScreenSkip = document.getElementById('btn-login-screen-skip');
             const btnSignOut = document.getElementById('btn-google-signout');
             const userProfile = document.getElementById('user-profile');
             const userAvatar = document.getElementById('user-avatar');
@@ -825,6 +855,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (btnSignIn) btnSignIn.addEventListener('click', signInHandler);
             if (btnLoginScreenSignIn) btnLoginScreenSignIn.addEventListener('click', signInHandler);
+            if (btnLoginScreenSkip) {
+                btnLoginScreenSkip.addEventListener('click', () => {
+                    if (loginScreen) loginScreen.classList.add('hidden');
+                    if (appContainer) appContainer.classList.remove('hidden');
+                });
+            }
             
             if (btnSignOut) {
                 btnSignOut.addEventListener('click', () => {
@@ -847,6 +883,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (appContainer) appContainer.classList.add('hidden');
                     if (loginLoading) loginLoading.classList.add('hidden');
                     if (btnLoginScreenSignIn) btnLoginScreenSignIn.classList.remove('hidden');
+                    if (btnLoginScreenSkip) btnLoginScreenSkip.classList.remove('hidden');
 
                     if (btnSignIn) btnSignIn.classList.remove('hidden');
                     if (userProfile) userProfile.classList.add('hidden');

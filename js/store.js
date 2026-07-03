@@ -42,6 +42,7 @@ const defaultState = {
         },
         protectionAyah: { fajr: 0, maghrib: 0 },
         ratib: false,
+        surahKahf: false,
         charity: false,
         help: false,
         customTasks: [],
@@ -161,6 +162,7 @@ class Store {
             dhikr: { morning: 0, evening: 0 },
             protectionAyah: { fajr: 0, maghrib: 0 },
             ratib: false,
+            surahKahf: false,
             charity: false,
             help: false,
             customTasks: resetCustomTasks,
@@ -192,7 +194,7 @@ class Store {
             this.data.stats.history.shift();
         }
 
-        if (percent > 0) {
+        if (percent >= 50) {
             if (!this.data.today.allCompletedForToday) {
                 this.data.stats.currentStreak += 1;
                 // Only count as fully "completed day" if 100%
@@ -210,7 +212,7 @@ class Store {
                 this.data.stats.currentStreak = Math.max(0, this.data.stats.currentStreak - 1);
                 this.data.today.allCompletedForToday = false;
             } else if (isEndOfDay) {
-                // Streak broken if 0% at the end of the day
+                // Streak broken if < 50% at the end of the day
                 this.data.stats.currentStreak = 0;
             }
         }
@@ -224,9 +226,11 @@ class Store {
         const ayah = this.data.today.protectionAyah.fajr >= 3 && this.data.today.protectionAyah.maghrib >= 3;
         const ratib = this.data.today.ratib;
         const quran = (this.data.today.quranPages || 0) >= 7;
+        const isFriday = new Date().getDay() === 5;
+        const kahf = isFriday ? this.data.today.surahKahf : true;
         const custom = Array.isArray(this.data.today.customTasks) ? this.data.today.customTasks.every(t => t.completed) : true;
 
-        return prayers && badr && salawat && dhikr && ayah && ratib && quran && custom;
+        return prayers && badr && salawat && dhikr && ayah && ratib && quran && kahf && custom;
     }
 
     getCompletionPercentage() {
@@ -258,6 +262,11 @@ class Store {
 
         total += 1;
         if ((this.data.today.quranPages || 0) >= 7) completed += 1;
+
+        if (new Date().getDay() === 5) {
+            total += 1;
+            if (this.data.today.surahKahf) completed += 1;
+        }
 
         if (this.data.today.charity) {
             total += 1;
@@ -360,6 +369,11 @@ class Store {
 
     toggleRatib() {
         this.data.today.ratib = !this.data.today.ratib;
+        this.saveData();
+    }
+
+    toggleKahf() {
+        this.data.today.surahKahf = !this.data.today.surahKahf;
         this.saveData();
     }
 
