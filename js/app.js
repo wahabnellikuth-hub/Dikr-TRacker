@@ -676,26 +676,26 @@ document.addEventListener('DOMContentLoaded', () => {
         checkSectionCompletion('badge-custom', customTasks.length > 0 ? allCustom : false);
 
         const percentage = window.store.getCompletionPercentage();
-        const headerBanner = document.getElementById('header-top-banner');
+        const headerBanner = document.getElementById('dashboard-header');
         const greetingTitle = document.getElementById('greeting-title');
         
         if (headerBanner && greetingTitle) {
-            headerBanner.className = 'header-top';
+            headerBanner.className = 'dashboard';
             if (percentage < 25) {
                 headerBanner.classList.add('bg-severe');
-                greetingTitle.textContent = "Make Allah happy today doing Good Deeds";
+                greetingTitle.textContent = "Start your day with sincere intentions";
             } else if (percentage < 50) {
                 headerBanner.classList.add('bg-warning');
-                greetingTitle.textContent = "Allah gives you thoufeeq to stay on good path";
+                greetingTitle.textContent = "May Allah guide your steps toward righteousness";
             } else if (percentage < 75) {
                 headerBanner.classList.add('bg-good');
-                greetingTitle.textContent = "YOu made it.";
+                greetingTitle.textContent = "Halfway there! Keep striving for His pleasure";
             } else if (percentage < 100) {
                 headerBanner.classList.add('bg-happy');
-                greetingTitle.textContent = "what a thoufeeq";
+                greetingTitle.textContent = "Subhanallah, your dedication is inspiring";
             } else {
                 headerBanner.classList.add('bg-perfect');
-                greetingTitle.textContent = "ENjouy the day";
+                greetingTitle.textContent = "It's a beautiful Day";
             }
         }
         
