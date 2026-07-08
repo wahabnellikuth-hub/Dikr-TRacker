@@ -1147,12 +1147,91 @@ document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app');
             const loginLoading = document.getElementById('login-loading');
 
-            const signInHandler = () => {
-                if(window.syncManager) window.syncManager.signIn();
+            const phoneAuthContainer = document.getElementById('phone-auth-container');
+            const phoneInputSection = document.getElementById('phone-input-section');
+            const otpInputSection = document.getElementById('otp-input-section');
+            const btnSendOtp = document.getElementById('btn-send-otp');
+            const btnVerifyOtp = document.getElementById('btn-verify-otp');
+            const btnChangeNumber = document.getElementById('btn-change-number');
+            const phoneNumberInput = document.getElementById('phone-number');
+            const otpCodeInput = document.getElementById('otp-code');
+            const authErrorMessage = document.getElementById('auth-error-message');
+
+            const showError = (msg) => {
+                if (authErrorMessage) authErrorMessage.textContent = msg;
             };
 
-            if (btnSignIn) btnSignIn.addEventListener('click', signInHandler);
-            if (btnLoginScreenSignIn) btnLoginScreenSignIn.addEventListener('click', signInHandler);
+            const clearError = () => {
+                if (authErrorMessage) authErrorMessage.textContent = '';
+            };
+
+            if (btnSendOtp) {
+                btnSendOtp.addEventListener('click', async () => {
+                    clearError();
+                    const num = phoneNumberInput.value.trim();
+                    if (!num) {
+                        showError("Please enter a mobile number.");
+                        return;
+                    }
+                    btnSendOtp.disabled = true;
+                    btnSendOtp.innerHTML = '<i data-lucide="loader" class="spinner"></i> Sending...';
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    try {
+                        await window.syncManager.sendOtp(num);
+                        phoneInputSection.classList.add('hidden');
+                        otpInputSection.classList.remove('hidden');
+                    } catch (error) {
+                        showError("Failed to send OTP: " + error.message);
+                    } finally {
+                        btnSendOtp.disabled = false;
+                        btnSendOtp.innerHTML = '<i data-lucide="send" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Send OTP';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                });
+            }
+
+            if (btnVerifyOtp) {
+                btnVerifyOtp.addEventListener('click', async () => {
+                    clearError();
+                    const code = otpCodeInput.value.trim();
+                    if (!code) {
+                        showError("Please enter the OTP.");
+                        return;
+                    }
+                    btnVerifyOtp.disabled = true;
+                    btnVerifyOtp.innerHTML = '<i data-lucide="loader" class="spinner"></i> Verifying...';
+                    if (window.lucide) window.lucide.createIcons();
+                    
+                    try {
+                        await window.syncManager.verifyOtp(code);
+                        // onAuthChange will handle the success state
+                    } catch (error) {
+                        showError("Invalid OTP: " + error.message);
+                        btnVerifyOtp.disabled = false;
+                        btnVerifyOtp.innerHTML = '<i data-lucide="check-circle" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Verify & Login';
+                        if (window.lucide) window.lucide.createIcons();
+                    }
+                });
+            }
+
+            if (btnChangeNumber) {
+                btnChangeNumber.addEventListener('click', () => {
+                    clearError();
+                    otpCodeInput.value = '';
+                    otpInputSection.classList.add('hidden');
+                    phoneInputSection.classList.remove('hidden');
+                });
+            }
+
+            if (btnSignIn) {
+                btnSignIn.addEventListener('click', () => {
+                    window.isSkippedAuth = false;
+                    if (appContainer) appContainer.classList.add('hidden');
+                    if (loginScreen) loginScreen.classList.remove('hidden');
+                });
+            }
+
             if (btnLoginScreenSkip) {
                 btnLoginScreenSkip.addEventListener('click', () => {
                     window.isSkippedAuth = true;
@@ -1186,20 +1265,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
                     if (btnSignIn) btnSignIn.classList.add('hidden');
                     if (userProfile) userProfile.classList.remove('hidden');
-                    if (userAvatar) userAvatar.src = user.photoURL || '';
-                    if (userName) userName.textContent = user.displayName || 'User';
+                    if (userName) userName.textContent = user.phoneNumber || 'User';
                 } else {
                     if (!window.isSkippedAuth) {
                         if (loginScreen) loginScreen.classList.remove('hidden');
                         if (appContainer) appContainer.classList.add('hidden');
                     }
                     if (loginLoading) loginLoading.classList.add('hidden');
-                    if (btnLoginScreenSignIn) btnLoginScreenSignIn.classList.remove('hidden');
+                    
+                    if (phoneAuthContainer) phoneAuthContainer.classList.remove('hidden');
+                    if (window.syncManager) window.syncManager.setupRecaptcha('recaptcha-container');
+
                     if (btnLoginScreenSkip) btnLoginScreenSkip.classList.remove('hidden');
 
                     if (btnSignIn) btnSignIn.classList.remove('hidden');
                     if (userProfile) userProfile.classList.add('hidden');
-                    if (userAvatar) userAvatar.src = '';
                     if (userName) userName.textContent = '';
                 }
             });
@@ -1210,7 +1290,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     console.error("Firebase auth state check timed out. Showing skip button.");
                     if (loginLoading) loginLoading.classList.add('hidden');
                     if (btnLoginScreenSkip) btnLoginScreenSkip.classList.remove('hidden');
-                    if (btnLoginScreenSignIn) btnLoginScreenSignIn.classList.remove('hidden');
+                    if (phoneAuthContainer) phoneAuthContainer.classList.remove('hidden');
                 }
             }, 3000);
 

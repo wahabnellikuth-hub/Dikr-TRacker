@@ -2,7 +2,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-app.js";
 import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-database.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
+import { getAuth, RecaptchaVerifier, signInWithPhoneNumber, signOut, onAuthStateChanged, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/12.15.0/firebase-auth.js";
 
 const firebaseConfig = {
     apiKey: "AIzaSyA8cBy7JNEhAuucBHwTOsYZc_EkW3wOa-c",
@@ -23,6 +23,8 @@ let activeListenerRef = null;
 let isSyncingFromRemote = false;
 let onChangeCallback = null;
 let onAuthChangeCallback = null;
+let confirmationResult = null;
+let recaptchaVerifier = null;
 
 function initFirebase() {
     if (!app) {
@@ -60,18 +62,52 @@ function initFirebase() {
 
 // ─── Authentication ──────────────────────────────────────────────────────────
 
-async function signIn() {
+function setupRecaptcha(containerId) {
     initFirebase();
-    const provider = new GoogleAuthProvider();
-    // Force the Google login to show the account chooser screen
-    provider.setCustomParameters({
-        prompt: 'select_account'
-    });
+    if (!recaptchaVerifier) {
+        recaptchaVerifier = new RecaptchaVerifier(auth, containerId, {
+            'size': 'normal',
+            'callback': (response) => {
+                // reCAPTCHA solved, allow signInWithPhoneNumber.
+            },
+            'expired-callback': () => {
+                // Response expired. Ask user to solve reCAPTCHA again.
+            }
+        });
+    }
+}
+
+async function sendOtp(phoneNumber) {
+    initFirebase();
+    if (!recaptchaVerifier) {
+        throw new Error('reCAPTCHA not initialized. Call setupRecaptcha first.');
+    }
+    
     try {
-        await signInWithPopup(auth, provider);
+        confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, recaptchaVerifier);
+        return true;
     } catch (error) {
-        console.error('[Sync] Sign-in error:', error.message);
-        alert('Sign-in failed: ' + error.message);
+        console.error('[Sync] Error sending OTP:', error.message);
+        // Reset recaptcha on error so user can try again
+        if (recaptchaVerifier) {
+            recaptchaVerifier.render().then(function(widgetId) {
+                grecaptcha.reset(widgetId);
+            });
+        }
+        throw error;
+    }
+}
+
+async function verifyOtp(code) {
+    if (!confirmationResult) {
+        throw new Error('No pending OTP request. Please send OTP first.');
+    }
+    try {
+        const result = await confirmationResult.confirm(code);
+        return result.user;
+    } catch (error) {
+        console.error('[Sync] Error verifying OTP:', error.message);
+        throw error;
     }
 }
 
@@ -253,7 +289,9 @@ window.syncManager = {
     isLinked,
     onRemoteChange,
     initSync,
-    signIn,
+    sendOtp,
+    verifyOtp,
+    setupRecaptcha,
     signOut: signUserOut,
     onAuthChange,
     mergeStats

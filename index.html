@@ -34,9 +34,30 @@
                 <span>Checking authentication...</span>
             </div>
 
-            <button class="action-button primary hidden" id="btn-login-screen-signin" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
-                <i data-lucide="log-in" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Sign in with Google
-            </button>
+            <div id="phone-auth-container" class="hidden" style="display: flex; flex-direction: column; gap: 1rem; width: 100%;">
+                <div id="phone-input-section" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label for="phone-number" style="font-size: 0.9rem; color: var(--text-muted); text-align: left;">Mobile Number</label>
+                    <input type="tel" id="phone-number" placeholder="+91 9876543210" style="padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; width: 100%; box-sizing: border-box;" value="+91">
+                    <button class="action-button primary" id="btn-send-otp" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
+                        <i data-lucide="send" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Send OTP
+                    </button>
+                </div>
+
+                <div id="otp-input-section" class="hidden" style="display: flex; flex-direction: column; gap: 0.5rem;">
+                    <label for="otp-code" style="font-size: 0.9rem; color: var(--text-muted); text-align: left;">Enter 6-digit OTP</label>
+                    <input type="text" id="otp-code" placeholder="123456" style="padding: 0.75rem; border-radius: var(--radius-md); border: 1px solid var(--border); background: var(--bg); color: var(--text); font-size: 1rem; width: 100%; box-sizing: border-box; text-align: center; letter-spacing: 0.2rem;">
+                    <button class="action-button primary" id="btn-verify-otp" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
+                        <i data-lucide="check-circle" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Verify & Login
+                    </button>
+                    <button class="action-button outline" id="btn-change-number" style="width: 100%; justify-content: center; padding: 0.5rem; font-size: 0.9rem; margin-top: 0.5rem;">
+                        Change Number
+                    </button>
+                </div>
+                
+                <div id="recaptcha-container" style="display: flex; justify-content: center; margin-top: 0.5rem;"></div>
+                <div id="auth-error-message" style="color: var(--danger); font-size: 0.85rem; text-align: center; min-height: 1.2rem;"></div>
+            </div>
+
             <button class="action-button outline" id="btn-login-screen-skip" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md); margin-top: 1rem;">
                 Continue without Syncing
             </button>
@@ -273,13 +294,13 @@
                         <div style="display: flex; flex-direction: column; gap: 0.75rem; width: 100%;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
                                 <span>Account & Sync</span>
-                                <button class="action-button primary" id="btn-google-signin">
-                                    <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Sign in with Google
+                                <button class="action-button primary hidden" id="btn-google-signin">
+                                    <i data-lucide="log-in" style="width: 16px; height: 16px;"></i> Sign in
                                 </button>
                             </div>
                             <div id="user-profile" class="hidden" style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--bg-main); border-radius: var(--radius-sm); border: 1px solid var(--border);">
                                 <div style="display: flex; align-items: center; gap: 0.75rem;">
-                                    <img id="user-avatar" src="" alt="Avatar" style="width: 32px; height: 32px; border-radius: 50%;">
+                                    <i data-lucide="smartphone" style="width: 24px; height: 24px; color: var(--text-muted);"></i>
                                     <span id="user-name" style="font-size: 0.9rem; font-weight: 500;"></span>
                                 </div>
                                 <button class="action-button outline" id="btn-google-signout" style="padding: 0.25rem 0.5rem; font-size: 0.8rem;">Sign Out</button>
