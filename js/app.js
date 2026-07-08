@@ -871,224 +871,216 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAnalyzeProgress = document.getElementById('btn-analyze-progress');
     const analysisModal = document.getElementById('analysis-modal');
     const btnCloseAnalysis = document.getElementById('btn-close-analysis');
+    const analysisTimeControls = document.getElementById('analysis-time-controls');
     
+    let currentAnalysisDays = 7;
+
+    function generateAnalysis(days) {
+        const fullHistory = window.store.data.stats.history || [];
+        
+        // Include today's data so new users see insights immediately
+        const todayDetailed = {
+            prayers: JSON.parse(JSON.stringify(window.store.data.today.prayers)),
+            salawat: JSON.parse(JSON.stringify(window.store.data.today.salawat)),
+            dhikr: JSON.parse(JSON.stringify(window.store.data.today.dhikr)),
+            ayah: JSON.parse(JSON.stringify(window.store.data.today.protectionAyah)),
+            badr: window.store.data.today.asmaulBadr,
+            ratib: window.store.data.today.ratib,
+            quran: window.store.data.today.quranPages,
+            kahf: window.store.data.today.surahKahf
+        };
+        
+        const todayTasks = {
+            prayers: Object.values(window.store.data.today.prayers).every(p => p.completed),
+            badr: window.store.data.today.asmaulBadr,
+            salawat: Object.values(window.store.data.today.salawat).every(s => s >= 50),
+            dhikr: window.store.data.today.dhikr.morning >= 11 && window.store.data.today.dhikr.evening >= 11,
+            ayah: window.store.data.today.protectionAyah.fajr >= 3 && window.store.data.today.protectionAyah.maghrib >= 3,
+            ratib: window.store.data.today.ratib,
+            quran: (window.store.data.today.quranPages || 0) >= 7,
+            kahf: new Date(window.store.data.today.date).getDay() === 5 ? window.store.data.today.surahKahf : true
+        };
+        
+        const historyAndToday = [...fullHistory, { tasks: todayTasks, detailedTasks: todayDetailed }].slice(-days);
+
+        // Compute overall Completed vs Skipped
+        let totalCompleted = 0;
+        let totalSkipped = 0;
+        
+        historyAndToday.forEach(entry => {
+            if (entry.tasks) {
+                Object.keys(entry.tasks).forEach(taskName => {
+                    if (taskName !== 'kahf') { // Excluding kahf for consistent daily totals
+                        if (entry.tasks[taskName]) {
+                            totalCompleted++;
+                        } else {
+                            totalSkipped++;
+                        }
+                    }
+                });
+            } else if (entry.percent !== undefined) {
+                // Fallback for old data
+                const multiplier = entry.percent / 100;
+                totalCompleted += multiplier * 7;
+                totalSkipped += (1 - multiplier) * 7;
+            }
+        });
+        
+        const totalPossible = totalCompleted + totalSkipped;
+        
+        const legendContainer = document.getElementById('chart-legend');
+        legendContainer.innerHTML = '';
+        
+        if (totalPossible === 0) {
+            document.getElementById('pie-chart').style.background = 'var(--border)';
+            legendContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); width: 100%;">No tasks data in this period.</p>';
+        } else {
+            const compPercent = (totalCompleted / totalPossible) * 100;
+            const skipPercent = (totalSkipped / totalPossible) * 100;
+            
+            document.getElementById('pie-chart').style.background = `conic-gradient(#4ade80 0% ${compPercent}%, #94a3b8 ${compPercent}% 100%)`;
+            
+            legendContainer.innerHTML = `
+                <div class="legend-item">
+                    <div class="legend-color-box" style="background: #4ade80;"></div>
+                    <span class="legend-label">Completed Tasks</span>
+                    <span class="legend-value">${Math.round(totalCompleted)}</span>
+                    <span class="legend-percent">${Math.round(compPercent)}%</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color-box" style="background: #94a3b8;"></div>
+                    <span class="legend-label">Skipped Tasks</span>
+                    <span class="legend-value">${Math.round(totalSkipped)}</span>
+                    <span class="legend-percent">${Math.round(skipPercent)}%</span>
+                </div>
+            `;
+        }
+        
+        // --- Detailed Insights ---
+        const detailedPrayerCounts = {};
+        const detailedSalawatCounts = {};
+        const skippedCounts = {}; // Track skipped
+        let totalDaysWithDetailedData = 0;
+        let totalDaysWithTaskData = 0;
+
+        historyAndToday.forEach(entry => {
+            if (entry.tasks) {
+                totalDaysWithTaskData++;
+                // Calculate skipped (explicitly ignoring 'kahf' per user request)
+                Object.keys(entry.tasks).forEach(taskName => {
+                    if (taskName !== 'kahf') {
+                        if (!skippedCounts[taskName]) skippedCounts[taskName] = 0;
+                        if (!entry.tasks[taskName]) skippedCounts[taskName]++;
+                    }
+                });
+            }
+            if (entry.detailedTasks) {
+                totalDaysWithDetailedData++;
+                
+                if (entry.detailedTasks.prayers) {
+                    Object.keys(entry.detailedTasks.prayers).forEach(pName => {
+                        if (!detailedPrayerCounts[pName]) detailedPrayerCounts[pName] = { comp: 0, jam: 0 };
+                        if (entry.detailedTasks.prayers[pName].completed) detailedPrayerCounts[pName].comp++;
+                        if (entry.detailedTasks.prayers[pName].jamaah) detailedPrayerCounts[pName].jam++;
+                    });
+                }
+                
+                if (entry.detailedTasks.salawat) {
+                    Object.keys(entry.detailedTasks.salawat).forEach(sName => {
+                        if (!detailedSalawatCounts[sName]) detailedSalawatCounts[sName] = 0;
+                        detailedSalawatCounts[sName] += entry.detailedTasks.salawat[sName];
+                    });
+                }
+            }
+        });
+
+        const formatName = name => name.charAt(0).toUpperCase() + name.slice(1);
+
+        let topPrayer = 'Needs more data';
+        if (totalDaysWithDetailedData > 0) {
+            let maxPrayerCount = -1;
+            let maxPrayerName = '';
+            let jamCount = 0;
+            Object.keys(detailedPrayerCounts).forEach(pName => {
+                if (detailedPrayerCounts[pName].comp > maxPrayerCount) {
+                    maxPrayerCount = detailedPrayerCounts[pName].comp;
+                    maxPrayerName = pName;
+                    jamCount = detailedPrayerCounts[pName].jam;
+                }
+            });
+            if (maxPrayerCount > 0) {
+                topPrayer = `${formatName(maxPrayerName)} (${jamCount} Jama'ah)`;
+            }
+        }
+
+        let topSalawat = 'Needs more data';
+        if (totalDaysWithDetailedData > 0) {
+            let maxSalawatCount = -1;
+            let maxSalawatName = '';
+            Object.keys(detailedSalawatCounts).forEach(sName => {
+                if (detailedSalawatCounts[sName] > maxSalawatCount) {
+                    maxSalawatCount = detailedSalawatCounts[sName];
+                    maxSalawatName = sName;
+                }
+            });
+            if (maxSalawatCount > 0) {
+                const shortName = maxSalawatName === 'ibrahimiyyah' ? 'Ibrahimiyyah' : formatName(maxSalawatName);
+                topSalawat = `${shortName} (${maxSalawatCount})`;
+            }
+        }
+
+        let mostSkipped = 'Needs more data';
+        if (totalDaysWithTaskData > 0) {
+            let maxSkippedCount = -1;
+            let maxSkippedName = '';
+            Object.keys(skippedCounts).forEach(taskName => {
+                if (skippedCounts[taskName] > maxSkippedCount) {
+                    maxSkippedCount = skippedCounts[taskName];
+                    maxSkippedName = taskName;
+                }
+            });
+            if (maxSkippedCount > 0) {
+                mostSkipped = `${formatName(maxSkippedName)} (${maxSkippedCount} times)`;
+            } else {
+                mostSkipped = 'None! Perfect!';
+            }
+        }
+
+        const elTopPrayer = document.getElementById('insight-top-prayer');
+        const elTopSalawat = document.getElementById('insight-top-salawat');
+        const elMostSkipped = document.getElementById('insight-most-skipped');
+        
+        if(elTopPrayer) elTopPrayer.textContent = topPrayer;
+        if(elTopSalawat) elTopSalawat.textContent = topSalawat;
+        if(elMostSkipped) elMostSkipped.textContent = mostSkipped;
+    }
+
     if (btnAnalyzeProgress && analysisModal) {
         btnAnalyzeProgress.addEventListener('click', () => {
-            const history = window.store.data.stats.history || [];
+            currentAnalysisDays = 7;
+            if (analysisTimeControls) {
+                Array.from(analysisTimeControls.children).forEach(btn => btn.classList.remove('active-range'));
+                analysisTimeControls.querySelector('[data-days="7"]').classList.add('active-range');
+            }
+            generateAnalysis(currentAnalysisDays);
             
             // Show Modal
             analysisModal.classList.remove('hidden');
             setTimeout(() => {
                 analysisModal.style.opacity = '1';
             }, 10);
-            
-            if (history.length === 0) return;
-            
-            const taskCounts = {};
-            let totalTasksCompleted = 0;
-            const allTasks = ['prayers', 'salawat', 'dhikr', 'ayah', 'badr', 'ratib', 'quran', 'kahf'];
-            
-            history.forEach(entry => {
-                if (entry.tasks) {
-                    Object.keys(entry.tasks).forEach(taskName => {
-                        if (!taskCounts[taskName]) taskCounts[taskName] = 0;
-                        if (entry.tasks[taskName]) {
-                            taskCounts[taskName]++;
-                            totalTasksCompleted++;
-                        }
-                    });
-                } else if (entry.percent !== undefined) {
-                    // Fallback for old data: extrapolate tasks from the daily percentage completion
-                    const multiplier = entry.percent / 100;
-                    if (multiplier > 0) {
-                        allTasks.forEach(taskName => {
-                            if (!taskCounts[taskName]) taskCounts[taskName] = 0;
-                            taskCounts[taskName] += multiplier;
-                            totalTasksCompleted += multiplier;
-                        });
-                    }
-                }
-            });
-            
-            document.getElementById('pie-chart-total').textContent = Math.round(totalTasksCompleted);
-            
-            const colors = {
-                prayers: '#4ade80',
-                salawat: '#60a5fa',
-                dhikr: '#f472b6',
-                ayah: '#facc15',
-                badr: '#a78bfa',
-                ratib: '#fb923c',
-                quran: '#2dd4bf',
-                kahf: '#94a3b8'
-            };
-            
-            const legendContainer = document.getElementById('chart-legend');
-            legendContainer.innerHTML = '';
-            
-            if (totalTasksCompleted === 0) {
-                document.getElementById('pie-chart').style.background = 'var(--border)';
-                legendContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); width: 100%;">No tasks completed yet.</p>';
-                return;
-            }
-            
-            let gradientStops = [];
-            let currentPercent = 0;
-            
-            Object.keys(taskCounts).forEach(taskName => {
-                const count = taskCounts[taskName];
-                if (count > 0) {
-                    const percent = (count / totalTasksCompleted) * 100;
-                    const nextPercent = currentPercent + percent;
-                    const color = colors[taskName] || '#fff';
-                    
-                    gradientStops.push(`${color} ${currentPercent}% ${nextPercent}%`);
-                    currentPercent = nextPercent;
-                    
-                    // Add Legend Item
-                    const formatName = name => name.charAt(0).toUpperCase() + name.slice(1);
-                    const legendItem = document.createElement('div');
-                    legendItem.className = 'legend-item';
-                    legendItem.innerHTML = `
-                        <div class="legend-color-box" style="background: ${color};"></div>
-                        <span class="legend-label">${formatName(taskName)}</span>
-                        <span class="legend-value">${Math.round(count)}</span>
-                        <span class="legend-percent">${Math.round(percent)}%</span>
-                    `;
-                    legendContainer.appendChild(legendItem);
-                }
-            });
-            
-            document.getElementById('pie-chart').style.background = `conic-gradient(${gradientStops.join(', ')})`;
-            
-            // --- Detailed Insights ---
-            const detailedPrayerCounts = {};
-            const detailedSalawatCounts = {};
-            const skippedCounts = {}; // Track skipped
-            let totalDaysWithDetailedData = 0;
-            let totalDaysWithTaskData = 0;
-
-            const historyAndToday = [...history];
-            // Include today's data so new users see insights immediately
-            const todayDetailed = {
-                prayers: JSON.parse(JSON.stringify(window.store.data.today.prayers)),
-                salawat: JSON.parse(JSON.stringify(window.store.data.today.salawat)),
-                dhikr: JSON.parse(JSON.stringify(window.store.data.today.dhikr)),
-                ayah: JSON.parse(JSON.stringify(window.store.data.today.protectionAyah)),
-                badr: window.store.data.today.asmaulBadr,
-                ratib: window.store.data.today.ratib,
-                quran: window.store.data.today.quranPages,
-                kahf: window.store.data.today.surahKahf
-            };
-            
-            const todayTasks = {
-                prayers: Object.values(window.store.data.today.prayers).every(p => p.completed),
-                badr: window.store.data.today.asmaulBadr,
-                salawat: Object.values(window.store.data.today.salawat).every(s => s >= 50),
-                dhikr: window.store.data.today.dhikr.morning >= 11 && window.store.data.today.dhikr.evening >= 11,
-                ayah: window.store.data.today.protectionAyah.fajr >= 3 && window.store.data.today.protectionAyah.maghrib >= 3,
-                ratib: window.store.data.today.ratib,
-                quran: (window.store.data.today.quranPages || 0) >= 7,
-                kahf: new Date(window.store.data.today.date).getDay() === 5 ? window.store.data.today.surahKahf : true
-            };
-            
-            historyAndToday.push({
-                tasks: todayTasks,
-                detailedTasks: todayDetailed
-            });
-
-            historyAndToday.forEach(entry => {
-                if (entry.tasks) {
-                    totalDaysWithTaskData++;
-                    // Calculate skipped (explicitly ignoring 'kahf' per user request)
-                    Object.keys(entry.tasks).forEach(taskName => {
-                        if (taskName !== 'kahf') {
-                            if (!skippedCounts[taskName]) skippedCounts[taskName] = 0;
-                            if (!entry.tasks[taskName]) skippedCounts[taskName]++;
-                        }
-                    });
-                }
-                if (entry.detailedTasks) {
-                    totalDaysWithDetailedData++;
-                    
-                    if (entry.detailedTasks.prayers) {
-                        Object.keys(entry.detailedTasks.prayers).forEach(pName => {
-                            if (!detailedPrayerCounts[pName]) detailedPrayerCounts[pName] = { comp: 0, jam: 0 };
-                            if (entry.detailedTasks.prayers[pName].completed) detailedPrayerCounts[pName].comp++;
-                            if (entry.detailedTasks.prayers[pName].jamaah) detailedPrayerCounts[pName].jam++;
-                        });
-                    }
-                    
-                    if (entry.detailedTasks.salawat) {
-                        Object.keys(entry.detailedTasks.salawat).forEach(sName => {
-                            if (!detailedSalawatCounts[sName]) detailedSalawatCounts[sName] = 0;
-                            detailedSalawatCounts[sName] += entry.detailedTasks.salawat[sName];
-                        });
-                    }
-                }
-            });
-
-            const formatName = name => name.charAt(0).toUpperCase() + name.slice(1);
-
-            let topPrayer = 'Needs more data';
-            if (totalDaysWithDetailedData > 0) {
-                let maxPrayerCount = -1;
-                let maxPrayerName = '';
-                let jamCount = 0;
-                Object.keys(detailedPrayerCounts).forEach(pName => {
-                    if (detailedPrayerCounts[pName].comp > maxPrayerCount) {
-                        maxPrayerCount = detailedPrayerCounts[pName].comp;
-                        maxPrayerName = pName;
-                        jamCount = detailedPrayerCounts[pName].jam;
-                    }
-                });
-                if (maxPrayerCount > 0) {
-                    topPrayer = `${formatName(maxPrayerName)} (${jamCount} Jama'ah)`;
-                }
-            }
-
-            let topSalawat = 'Needs more data';
-            if (totalDaysWithDetailedData > 0) {
-                let maxSalawatCount = -1;
-                let maxSalawatName = '';
-                Object.keys(detailedSalawatCounts).forEach(sName => {
-                    if (detailedSalawatCounts[sName] > maxSalawatCount) {
-                        maxSalawatCount = detailedSalawatCounts[sName];
-                        maxSalawatName = sName;
-                    }
-                });
-                if (maxSalawatCount > 0) {
-                    // special format for salawat ibrahimiyyah as it's long
-                    const shortName = maxSalawatName === 'ibrahimiyyah' ? 'Ibrahimiyyah' : formatName(maxSalawatName);
-                    topSalawat = `${shortName} (${maxSalawatCount})`;
-                }
-            }
-
-            let mostSkipped = 'Needs more data';
-            if (totalDaysWithTaskData > 0) {
-                let maxSkippedCount = -1;
-                let maxSkippedName = '';
-                Object.keys(skippedCounts).forEach(taskName => {
-                    if (skippedCounts[taskName] > maxSkippedCount) {
-                        maxSkippedCount = skippedCounts[taskName];
-                        maxSkippedName = taskName;
-                    }
-                });
-                if (maxSkippedCount > 0) {
-                    mostSkipped = formatName(maxSkippedName);
-                } else {
-                    mostSkipped = 'None! Perfect!';
-                }
-            }
-
-            const elTopPrayer = document.getElementById('insight-top-prayer');
-            const elTopSalawat = document.getElementById('insight-top-salawat');
-            const elMostSkipped = document.getElementById('insight-most-skipped');
-            
-            if(elTopPrayer) elTopPrayer.textContent = topPrayer;
-            if(elTopSalawat) elTopSalawat.textContent = topSalawat;
-            if(elMostSkipped) elMostSkipped.textContent = mostSkipped;
         });
+        
+        if (analysisTimeControls) {
+            analysisTimeControls.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    Array.from(analysisTimeControls.children).forEach(btn => btn.classList.remove('active-range'));
+                    e.target.classList.add('active-range');
+                    currentAnalysisDays = parseInt(e.target.dataset.days, 10);
+                    generateAnalysis(currentAnalysisDays);
+                }
+            });
+        }
         
         btnCloseAnalysis.addEventListener('click', () => {
             analysisModal.style.opacity = '0';

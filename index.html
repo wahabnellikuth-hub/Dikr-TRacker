@@ -373,20 +373,22 @@
     <!-- Analysis Modal -->
     <div id="analysis-modal" class="modal-overlay hidden" style="opacity: 0; transition: opacity 0.3s ease;">
         <div class="modal-content" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; max-width: 90%; width: 400px; background: var(--bg-main);">
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 1rem;">
                 <h3 id="analysis-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text);">Progress Breakdown</h3>
                 <button class="icon-button" id="btn-close-analysis" aria-label="Close Analysis" style="padding: 0.25rem;">
                     <i data-lucide="x"></i>
                 </button>
             </div>
             
-            <div id="analysis-modal-body" style="width: 100%; display: flex; flex-direction: column; align-items: center; overflow-y: auto; max-height: 80vh;">
+            <div style="display: flex; gap: 0.5rem; margin-bottom: 2rem; width: 100%; justify-content: center;" id="analysis-time-controls">
+                <button class="action-button outline small active-range" data-days="7" style="padding: 0.25rem 1rem; font-size: 0.85rem;">7 Days</button>
+                <button class="action-button outline small" data-days="14" style="padding: 0.25rem 1rem; font-size: 0.85rem;">14 Days</button>
+                <button class="action-button outline small" data-days="30" style="padding: 0.25rem 1rem; font-size: 0.85rem;">30 Days</button>
+            </div>
+            
+            <div id="analysis-modal-body" style="width: 100%; display: flex; flex-direction: column; align-items: center; overflow-y: auto; flex: 1; min-height: 0; padding-bottom: 1rem;">
                 <div class="pie-chart-container" style="position: relative; width: 220px; height: 220px; margin-bottom: 2rem;">
                     <div id="pie-chart" class="pie-chart"></div>
-                    <div class="pie-chart-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 140px; height: 140px; background: var(--bg-main); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
-                        <span id="pie-chart-total" style="font-size: 2rem; font-weight: 700; color: var(--text);">0</span>
-                        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Total Tasks</span>
-                    </div>
                 </div>
                 
                 <div id="chart-legend" class="chart-legend" style="width: 100%; display: flex; flex-direction: column; gap: 0.75rem;">
