@@ -1,6 +1,8 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Initialize Icons
-    lucide.createIcons();
+    // Initialize Icons safely
+    if (typeof lucide !== 'undefined') {
+        try { lucide.createIcons(); } catch (e) { console.warn('Lucide icons failed to load', e); }
+    }
 
     // Elements
     const dateText = document.getElementById('current-date');
@@ -18,6 +20,115 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnSavePdfLink = document.getElementById('btn-save-pdf-link');
     const pdfTypeName = document.getElementById('pdf-type-name');
     let currentPdfType = null; // 'badr' or 'ratib'
+    
+    let currentChartDays = 7;
+
+    // Counter Modal
+    const counterModal = document.getElementById('counter-modal');
+    const btnCloseCounter = document.getElementById('btn-close-counter');
+    const counterModalTitle = document.getElementById('counter-modal-title');
+    const counterModalVal = document.getElementById('counter-modal-val');
+    const counterModalLimit = document.getElementById('counter-modal-limit');
+    const btnCounterModalMinus = document.getElementById('btn-counter-modal-minus');
+    const btnCounterModalCustom = document.getElementById('btn-counter-modal-custom');
+    const btnCounterModalPlus = document.getElementById('btn-counter-modal-plus');
+    const btnCounterModalClear = document.getElementById('btn-counter-modal-clear');
+    const counterModalCircle = document.getElementById('counter-modal-circle');
+
+    let currentActiveCounter = null;
+
+    function openCounterModal(category, id, title, limit) {
+        currentActiveCounter = { category, id, limit };
+        counterModalTitle.textContent = title;
+        counterModalLimit.textContent = `/ ${limit}`;
+        updateCounterModalUI();
+        
+        counterModal.classList.remove('hidden');
+        setTimeout(() => {
+            counterModal.style.opacity = '1';
+        }, 10);
+    }
+
+    function closeCounterModal() {
+        counterModal.style.opacity = '0';
+        setTimeout(() => {
+            counterModal.classList.add('hidden');
+            currentActiveCounter = null;
+        }, 300);
+    }
+    
+    if(btnCloseCounter) btnCloseCounter.addEventListener('click', closeCounterModal);
+
+    function updateCounterValue(delta) {
+        if (!currentActiveCounter) return;
+        const { category, id, limit } = currentActiveCounter;
+        
+        if (category === 'salawat') window.store.updateSalawat(id, delta);
+        if (category === 'dhikr') window.store.updateDhikr(id, delta);
+        if (category === 'ayah') window.store.updateAyah(id, delta);
+        if (category === 'quran') window.store.updateQuranPages(delta);
+        
+        updateCounterModalUI();
+        
+        if (delta > 0) {
+            const currentVal = parseInt(counterModalVal.textContent, 10);
+            if (currentVal >= limit) {
+                if (window.confetti) {
+                    confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 }, colors: ['#2e7d32', '#d4af37'], zIndex: 4000 });
+                }
+                setTimeout(closeCounterModal, 800);
+            }
+        }
+    }
+
+    function updateCounterModalUI() {
+        if (!currentActiveCounter) return;
+        const { category, id } = currentActiveCounter;
+        let val = 0;
+        const data = window.store.data.today;
+        
+        if (category === 'salawat') val = data.salawat[id];
+        if (category === 'dhikr') val = data.dhikr[id];
+        if (category === 'ayah') val = data.protectionAyah[id];
+        if (category === 'quran') val = data.quranPages;
+        
+        counterModalVal.textContent = val;
+    }
+
+    if(counterModalCircle) {
+        counterModalCircle.addEventListener('click', () => {
+            counterModalCircle.style.transform = 'scale(0.95)';
+            setTimeout(() => counterModalCircle.style.transform = 'scale(1)', 100);
+            updateCounterValue(1);
+        });
+    }
+    
+    if(btnCounterModalPlus) btnCounterModalPlus.addEventListener('click', () => updateCounterValue(1));
+    if(btnCounterModalMinus) btnCounterModalMinus.addEventListener('click', () => updateCounterValue(-1));
+    if(btnCounterModalCustom) {
+        btnCounterModalCustom.addEventListener('click', () => {
+            if (!currentActiveCounter) return;
+            const { limit } = currentActiveCounter;
+            const val = prompt('Enter amount to add:', limit.toString());
+            if (val !== null) {
+                const num = parseInt(val, 10);
+                if (!isNaN(num) && num !== 0) {
+                    updateCounterValue(num);
+                }
+            }
+        });
+    }
+    if(btnCounterModalClear) {
+        btnCounterModalClear.addEventListener('click', () => {
+            if (!currentActiveCounter) return;
+            const { category, id } = currentActiveCounter;
+            if (category === 'salawat') window.store.updateSalawat(id, -999);
+            if (category === 'dhikr') window.store.updateDhikr(id, -999);
+            if (category === 'ayah') window.store.updateAyah(id, -999);
+            if (category === 'quran') window.store.updateQuranPages(-999);
+            updateCounterModalUI();
+        });
+    }
 
     // Data structures
     const prayers = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
@@ -180,36 +291,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>${label}</h4>
                     <div class="counter-value"><span id="salawat-val-${prayer}">0</span> / 50</div>
                 </div>
-                <div class="counter-controls">
-                    <button class="counter-btn minus" id="btn-salawat-clear-${prayer}" title="Clear count" style="margin-right: 0.25rem;">
-                        <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <button class="counter-btn minus" id="btn-salawat-minus-${prayer}">-</button>
-                    <button class="counter-btn custom" id="btn-salawat-custom-${prayer}" title="Add custom amount" style="background: transparent; border: 1px solid var(--border); color: var(--text-main);">
-                        <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
-                    </button>
-                    <button class="counter-btn plus" id="btn-salawat-plus-${prayer}">+</button>
-                </div>
             `;
+            card.style.cursor = 'pointer';
             container.appendChild(card);
             
-            card.querySelector(`#btn-salawat-minus-${prayer}`).addEventListener('click', () => {
-                window.store.updateSalawat(prayer, -1);
-            });
-            card.querySelector(`#btn-salawat-clear-${prayer}`).addEventListener('click', () => {
-                window.store.updateSalawat(prayer, -999);
-            });
-            card.querySelector(`#btn-salawat-plus-${prayer}`).addEventListener('click', () => {
-                window.store.updateSalawat(prayer, 1);
-            });
-            card.querySelector(`#btn-salawat-custom-${prayer}`).addEventListener('click', () => {
-                const val = prompt('Enter amount to add (e.g., 10, 33):', '10');
-                if (val !== null) {
-                    const num = parseInt(val, 10);
-                    if (!isNaN(num) && num > 0) {
-                        window.store.updateSalawat(prayer, num);
-                    }
-                }
+            card.addEventListener('click', () => {
+                openCounterModal('salawat', prayer, prayerNames[prayer].en + ' Salawat', 50);
             });
         });
         lucide.createIcons();
@@ -231,20 +318,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>${label}</h4>
                     <div class="counter-value"><span id="dhikr-val-${type}">0</span> / 11</div>
                 </div>
-                <div class="counter-controls">
-                    <button class="counter-btn minus" id="btn-dhikr-clear-${type}" title="Clear count" style="margin-right: 0.5rem;">
-                        <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <button class="counter-btn plus" id="btn-dhikr-plus-${type}">+</button>
-                </div>
             `;
+            card.style.cursor = 'pointer';
             container.appendChild(card);
             
-            card.querySelector(`#btn-dhikr-plus-${type}`).addEventListener('click', () => {
-                window.store.updateDhikr(type, 1);
-            });
-            card.querySelector(`#btn-dhikr-clear-${type}`).addEventListener('click', () => {
-                window.store.updateDhikr(type, -999);
+            card.addEventListener('click', () => {
+                openCounterModal('dhikr', type, label, 11);
             });
         });
     }
@@ -265,20 +344,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <h4>${label}</h4>
                     <div class="counter-value"><span id="ayah-val-${type}">0</span> / 3</div>
                 </div>
-                <div class="counter-controls">
-                    <button class="counter-btn minus" id="btn-ayah-clear-${type}" title="Clear count" style="margin-right: 0.5rem;">
-                        <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
-                    </button>
-                    <button class="counter-btn plus" id="btn-ayah-plus-${type}">+</button>
-                </div>
             `;
+            card.style.cursor = 'pointer';
             container.appendChild(card);
             
-            card.querySelector(`#btn-ayah-plus-${type}`).addEventListener('click', () => {
-                window.store.updateAyah(type, 1);
-            });
-            card.querySelector(`#btn-ayah-clear-${type}`).addEventListener('click', () => {
-                window.store.updateAyah(type, -999);
+            card.addEventListener('click', () => {
+                openCounterModal('ayah', type, 'Protection Ayah ' + label, 3);
             });
         });
     }
@@ -325,24 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setupQuranListeners() {
-        document.getElementById('btn-quran-minus').addEventListener('click', () => {
-            window.store.updateQuranPages(-1);
-        });
-        document.getElementById('btn-quran-clear').addEventListener('click', () => {
-            window.store.updateQuranPages(-999);
-        });
-        document.getElementById('btn-quran-plus').addEventListener('click', () => {
-            window.store.updateQuranPages(1);
-        });
-        document.getElementById('btn-quran-custom').addEventListener('click', () => {
-            const val = prompt('Enter pages read (e.g., 5, 10):', '5');
-            if (val !== null) {
-                const num = parseInt(val, 10);
-                if (!isNaN(num) && num > 0) {
-                    window.store.updateQuranPages(num);
-                }
-            }
-        });
+        const cardQuran = document.getElementById('card-quran');
+        if (cardQuran) {
+            cardQuran.addEventListener('click', () => {
+                openCounterModal('quran', 'quran', "Qur'an Reading", 7);
+            });
+        }
 
         const isFriday = new Date().getDay() === 5;
         const kahfCard = document.getElementById('card-surah-kahf');
@@ -723,7 +782,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             progressText.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:0.25rem;"><i data-lucide="award" style="width:24px;height:24px;color:var(--gold);stroke:var(--gold);"></i><span style="font-size:0.875rem;">100%</span></div>';
-            lucide.createIcons();
+            if (typeof lucide !== 'undefined') {
+                try { lucide.createIcons(); } catch(e){}
+            }
             setTimeout(() => {
                 progressText.textContent = '100%';
             }, 3000);
@@ -739,22 +800,22 @@ document.addEventListener('DOMContentLoaded', () => {
         mainProgressRing.style.strokeDashoffset = offset;
     }
 
+
     function renderDailyProgressChart() {
         const chartContainer = document.getElementById('daily-progress-chart');
         if (!chartContainer) return;
         
         const history = window.store.data.stats.history || [];
-        // Get last 7 days
-        const last7 = history.slice(-7);
+        const lastDays = history.slice(-currentChartDays);
         
         chartContainer.innerHTML = '';
         
-        if (last7.length === 0) {
+        if (lastDays.length === 0) {
             chartContainer.innerHTML = '<p style="color: var(--text-muted); font-size: 0.8rem; margin: auto;">No data yet</p>';
             return;
         }
 
-        last7.forEach(entry => {
+        lastDays.forEach(entry => {
             const dateObj = new Date(entry.date);
             const dayName = dateObj.toLocaleDateString('en-US', { weekday: 'short' });
             
@@ -782,6 +843,119 @@ document.addEventListener('DOMContentLoaded', () => {
             barContainer.appendChild(dayLabel);
             
             chartContainer.appendChild(barContainer);
+        });
+        
+        // Scroll to the end (right side)
+        setTimeout(() => {
+            chartContainer.scrollLeft = chartContainer.scrollWidth;
+        }, 100);
+    }
+    
+    // Bind chart controls
+    const chartControls = document.getElementById('chart-controls');
+    if (chartControls) {
+        chartControls.addEventListener('click', (e) => {
+            if (e.target.tagName === 'BUTTON') {
+                // Update active state
+                Array.from(chartControls.children).forEach(btn => btn.classList.remove('active-range'));
+                e.target.classList.add('active-range');
+                
+                // Render chart
+                currentChartDays = parseInt(e.target.dataset.days, 10);
+                renderDailyProgressChart();
+            }
+        });
+    }
+
+    // Analysis Logic (Pie Chart)
+    const btnAnalyzeProgress = document.getElementById('btn-analyze-progress');
+    const analysisModal = document.getElementById('analysis-modal');
+    const btnCloseAnalysis = document.getElementById('btn-close-analysis');
+    
+    if (btnAnalyzeProgress && analysisModal) {
+        btnAnalyzeProgress.addEventListener('click', () => {
+            const history = window.store.data.stats.history || [];
+            
+            // Show Modal
+            analysisModal.classList.remove('hidden');
+            setTimeout(() => {
+                analysisModal.style.opacity = '1';
+            }, 10);
+            
+            if (history.length === 0) return;
+            
+            const taskCounts = {};
+            let totalTasksCompleted = 0;
+            
+            history.forEach(entry => {
+                if (entry.tasks) {
+                    Object.keys(entry.tasks).forEach(taskName => {
+                        if (!taskCounts[taskName]) taskCounts[taskName] = 0;
+                        if (entry.tasks[taskName]) {
+                            taskCounts[taskName]++;
+                            totalTasksCompleted++;
+                        }
+                    });
+                }
+            });
+            
+            document.getElementById('pie-chart-total').textContent = totalTasksCompleted;
+            
+            const colors = {
+                prayers: '#4ade80',
+                salawat: '#60a5fa',
+                dhikr: '#f472b6',
+                ayah: '#facc15',
+                badr: '#a78bfa',
+                ratib: '#fb923c',
+                quran: '#2dd4bf',
+                kahf: '#94a3b8'
+            };
+            
+            const legendContainer = document.getElementById('chart-legend');
+            legendContainer.innerHTML = '';
+            
+            if (totalTasksCompleted === 0) {
+                document.getElementById('pie-chart').style.background = 'var(--border)';
+                legendContainer.innerHTML = '<p style="text-align: center; color: var(--text-muted); width: 100%;">No tasks completed yet.</p>';
+                return;
+            }
+            
+            let gradientStops = [];
+            let currentPercent = 0;
+            
+            Object.keys(taskCounts).forEach(taskName => {
+                const count = taskCounts[taskName];
+                if (count > 0) {
+                    const percent = (count / totalTasksCompleted) * 100;
+                    const nextPercent = currentPercent + percent;
+                    const color = colors[taskName] || '#fff';
+                    
+                    gradientStops.push(`${color} ${currentPercent}% ${nextPercent}%`);
+                    currentPercent = nextPercent;
+                    
+                    // Add Legend Item
+                    const formatName = name => name.charAt(0).toUpperCase() + name.slice(1);
+                    const legendItem = document.createElement('div');
+                    legendItem.className = 'legend-item';
+                    legendItem.innerHTML = `
+                        <div class="legend-color-box" style="background: ${color};"></div>
+                        <span class="legend-label">${formatName(taskName)}</span>
+                        <span class="legend-value">${count}</span>
+                        <span class="legend-percent">${Math.round(percent)}%</span>
+                    `;
+                    legendContainer.appendChild(legendItem);
+                }
+            });
+            
+            document.getElementById('pie-chart').style.background = `conic-gradient(${gradientStops.join(', ')})`;
+        });
+        
+        btnCloseAnalysis.addEventListener('click', () => {
+            analysisModal.style.opacity = '0';
+            setTimeout(() => {
+                analysisModal.classList.add('hidden');
+            }, 300);
         });
     }
 
@@ -829,15 +1003,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // sync.js loads as ES module (async) — wait for it then init
-    function waitForSyncManager(retries = 20) {
-        if (window.syncManager) {
-            window.syncManager.initSync().then(success => {
-                if (success) {
-                    attachRemoteChangeListener();
-                }
-            });
-
             // Bind Auth Buttons
             const btnSignIn = document.getElementById('btn-google-signin');
             const btnLoginScreenSignIn = document.getElementById('btn-login-screen-signin');
@@ -851,12 +1016,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const appContainer = document.getElementById('app');
             const loginLoading = document.getElementById('login-loading');
 
-            const signInHandler = () => window.syncManager.signIn();
+            const signInHandler = () => {
+                if(window.syncManager) window.syncManager.signIn();
+            };
 
             if (btnSignIn) btnSignIn.addEventListener('click', signInHandler);
             if (btnLoginScreenSignIn) btnLoginScreenSignIn.addEventListener('click', signInHandler);
             if (btnLoginScreenSkip) {
                 btnLoginScreenSkip.addEventListener('click', () => {
+                    window.isSkippedAuth = true;
                     if (loginScreen) loginScreen.classList.add('hidden');
                     if (appContainer) appContainer.classList.remove('hidden');
                 });
@@ -864,12 +1032,23 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (btnSignOut) {
                 btnSignOut.addEventListener('click', () => {
-                    window.syncManager.signOut();
+                    if(window.syncManager) window.syncManager.signOut();
                 });
             }
 
+    // sync.js loads as ES module (async) — wait for it then init
+    function waitForSyncManager(retries = 20) {
+        if (window.syncManager) {
+            window.syncManager.initSync().then(success => {
+                if (success) {
+                    attachRemoteChangeListener();
+                }
+            });
+
             // Handle Auth State Changes
+            let authHandled = false;
             window.syncManager.onAuthChange((user) => {
+                authHandled = true;
                 if (user) {
                     if (loginScreen) loginScreen.classList.add('hidden');
                     if (appContainer) appContainer.classList.remove('hidden');
@@ -879,8 +1058,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (userAvatar) userAvatar.src = user.photoURL || '';
                     if (userName) userName.textContent = user.displayName || 'User';
                 } else {
-                    if (loginScreen) loginScreen.classList.remove('hidden');
-                    if (appContainer) appContainer.classList.add('hidden');
+                    if (!window.isSkippedAuth) {
+                        if (loginScreen) loginScreen.classList.remove('hidden');
+                        if (appContainer) appContainer.classList.add('hidden');
+                    }
                     if (loginLoading) loginLoading.classList.add('hidden');
                     if (btnLoginScreenSignIn) btnLoginScreenSignIn.classList.remove('hidden');
                     if (btnLoginScreenSkip) btnLoginScreenSkip.classList.remove('hidden');
@@ -891,9 +1072,24 @@ document.addEventListener('DOMContentLoaded', () => {
                     if (userName) userName.textContent = '';
                 }
             });
+            
+            // Fallback if Firebase auth check hangs
+            setTimeout(() => {
+                if (!authHandled) {
+                    console.error("Firebase auth state check timed out. Showing skip button.");
+                    if (loginLoading) loginLoading.classList.add('hidden');
+                    if (btnLoginScreenSkip) btnLoginScreenSkip.classList.remove('hidden');
+                    if (btnLoginScreenSignIn) btnLoginScreenSignIn.classList.remove('hidden');
+                }
+            }, 3000);
 
         } else if (retries > 0) {
             setTimeout(() => waitForSyncManager(retries - 1), 150);
+        } else {
+            // Firebase failed to load, allow user to skip
+            if (loginLoading) loginLoading.classList.add('hidden');
+            if (btnLoginScreenSkip) btnLoginScreenSkip.classList.remove('hidden');
+            console.error("Firebase sync module failed to load within timeout.");
         }
     }
     waitForSyncManager();

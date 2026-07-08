@@ -19,7 +19,7 @@
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
     
     <!-- Styles -->
-    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/style.css?v=2">
 </head>
 <body>
     <!-- Login Screen -->
@@ -37,7 +37,7 @@
             <button class="action-button primary hidden" id="btn-login-screen-signin" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md);">
                 <i data-lucide="log-in" style="width: 20px; height: 20px; margin-right: 0.5rem;"></i> Sign in with Google
             </button>
-            <button class="action-button outline hidden" id="btn-login-screen-skip" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md); margin-top: 1rem;">
+            <button class="action-button outline" id="btn-login-screen-skip" style="width: 100%; justify-content: center; padding: 1rem; font-size: 1.1rem; border-radius: var(--radius-md); margin-top: 1rem;">
                 Continue without Syncing
             </button>
         </div>
@@ -118,20 +118,10 @@
             <!-- Section 3.5: Qur'an Reading -->
             <section class="section" id="quran-section">
                 <h3 class="section-title">Qur'an Reading <span id="badge-quran" class="section-badge hidden"><i data-lucide="star" style="fill: var(--gold); stroke: var(--gold);"></i></span></h3>
-                <div class="card counter-card" id="card-quran">
+                <div class="card counter-card" id="card-quran" style="cursor: pointer;">
                     <div class="counter-info">
                         <h4>Pages Read Today</h4>
                         <div class="counter-value"><span id="quran-val">0</span> / 7</div>
-                    </div>
-                    <div class="counter-controls">
-                        <button class="counter-btn minus" id="btn-quran-clear" title="Clear count" style="margin-right: 0.25rem;">
-                            <i data-lucide="rotate-ccw" style="width: 14px; height: 14px;"></i>
-                        </button>
-                        <button class="counter-btn minus" id="btn-quran-minus">-</button>
-                        <button class="counter-btn custom" id="btn-quran-custom" title="Add custom amount" style="background: transparent; border: 1px solid var(--border); color: var(--text-main);">
-                            <i data-lucide="edit-3" style="width: 16px; height: 16px;"></i>
-                        </button>
-                        <button class="counter-btn plus" id="btn-quran-plus">+</button>
                     </div>
                 </div>
                 <!-- Surah Kahf section will be injected here if it's Friday -->
@@ -255,10 +245,23 @@
                 </div>
 
                 <div class="card chart-card mt-4">
-                    <h4 class="card-title" style="margin-bottom: 1rem; color: var(--text);">Daily Progress (Last 7 Days)</h4>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                        <h4 class="card-title" style="color: var(--text);">Daily Progress</h4>
+                        <div style="display: flex; gap: 0.5rem;" id="chart-controls">
+                            <button class="action-button outline small active-range" data-days="7" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">7D</button>
+                            <button class="action-button outline small" data-days="14" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">14D</button>
+                            <button class="action-button outline small" data-days="30" style="padding: 0.25rem 0.5rem; font-size: 0.75rem;">30D</button>
+                        </div>
+                    </div>
                     <div class="bar-chart" id="daily-progress-chart">
                         <!-- Bars injected by JS -->
                     </div>
+                </div>
+
+                <div class="card mt-4" style="margin-top: 1rem; display: flex; flex-direction: column; gap: 1rem;">
+                    <button class="action-button primary" id="btn-analyze-progress" style="width: 100%; justify-content: center;">
+                        <i data-lucide="pie-chart"></i> Analyze Progress
+                    </button>
                 </div>
             </section>
 
@@ -339,8 +342,62 @@
         </div>
     </div>
 
-    <script type="module" src="js/sync.js"></script>
-    <script src="js/store.js"></script>
-    <script src="js/app.js"></script>
+    <!-- Full Screen Counter Modal -->
+    <div id="counter-modal" class="hidden" style="position: fixed; inset: 0; background: var(--bg); z-index: 3000; display: flex; flex-direction: column; justify-content: center; align-items: center; opacity: 0; transition: opacity 0.3s ease;">
+        <button id="btn-close-counter" class="icon-button" style="position: absolute; top: 1.5rem; right: 1.5rem; background: var(--surface); border: 1px solid var(--border); border-radius: 50%; padding: 0.5rem; color: var(--text-main);">
+            <i data-lucide="x"></i>
+        </button>
+        <h2 id="counter-modal-title" style="font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; text-align: center; padding: 0 2rem;">Task Name</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">Tap the circle to count</p>
+        
+        <div style="display: flex; gap: 1.5rem; margin-bottom: 2rem;">
+            <button id="btn-counter-modal-minus" class="action-button outline" style="width: 64px; height: 64px; border-radius: 50%; font-size: 2rem; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">-</button>
+            <button id="btn-counter-modal-custom" class="action-button outline" style="width: 64px; height: 64px; border-radius: 50%; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);" title="Add custom amount">
+                <i data-lucide="edit-3"></i>
+            </button>
+            <button id="btn-counter-modal-plus" class="action-button outline" style="width: 64px; height: 64px; border-radius: 50%; font-size: 2rem; display: flex; justify-content: center; align-items: center; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">+</button>
+        </div>
+
+        <button id="counter-modal-circle" style="width: 280px; height: 280px; border-radius: 50%; background: linear-gradient(135deg, var(--accent), #b7791f); border: none; color: white; display: flex; flex-direction: column; justify-content: center; align-items: center; cursor: pointer; box-shadow: 0 15px 35px rgba(212, 175, 55, 0.4); transition: transform 0.1s ease, box-shadow 0.1s ease; user-select: none; -webkit-tap-highlight-color: transparent;">
+            <span id="counter-modal-val" style="font-size: 5rem; font-weight: 700; line-height: 1; text-shadow: 0 2px 4px rgba(0,0,0,0.2);">0</span>
+            <span id="counter-modal-limit" style="font-size: 1.5rem; opacity: 0.9; margin-top: 0.5rem; font-weight: 500;">/ 50</span>
+        </button>
+        
+        <div style="margin-top: 3rem;">
+            <button id="btn-counter-modal-clear" class="action-button outline" style="border-radius: var(--radius-full); padding: 0.75rem 2rem; font-size: 1.1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <i data-lucide="rotate-ccw" style="margin-right: 0.5rem;"></i> Reset Counter
+            </button>
+        </div>
+    </div>
+
+    <!-- Analysis Modal -->
+    <div id="analysis-modal" class="modal-overlay hidden" style="opacity: 0; transition: opacity 0.3s ease;">
+        <div class="modal-content" style="padding: 1.5rem; display: flex; flex-direction: column; align-items: center; max-width: 90%; width: 400px; background: var(--bg-main);">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 2rem;">
+                <h3 id="analysis-modal-title" style="margin: 0; font-size: 1.25rem; font-weight: 700; color: var(--text);">Progress Breakdown</h3>
+                <button class="icon-button" id="btn-close-analysis" aria-label="Close Analysis" style="padding: 0.25rem;">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            
+            <div id="analysis-modal-body" style="width: 100%; display: flex; flex-direction: column; align-items: center;">
+                <div class="pie-chart-container" style="position: relative; width: 220px; height: 220px; margin-bottom: 2rem;">
+                    <div id="pie-chart" class="pie-chart"></div>
+                    <div class="pie-chart-center" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 140px; height: 140px; background: var(--bg-main); border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);">
+                        <span id="pie-chart-total" style="font-size: 2rem; font-weight: 700; color: var(--text);">0</span>
+                        <span style="font-size: 0.85rem; color: var(--text-muted); font-weight: 500;">Total Tasks</span>
+                    </div>
+                </div>
+                
+                <div id="chart-legend" class="chart-legend" style="width: 100%; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <!-- Legend items injected by JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/sync.js?v=1"></script>
+    <script src="js/store.js?v=1"></script>
+    <script src="js/app.js?v=1"></script>
 </body>
 </html>

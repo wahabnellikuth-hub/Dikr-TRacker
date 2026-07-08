@@ -179,14 +179,27 @@ class Store {
             this.data.stats.history = [];
         }
         
+        const tasks = {
+            prayers: Object.values(this.data.today.prayers).every(p => p.completed),
+            badr: this.data.today.asmaulBadr,
+            salawat: Object.values(this.data.today.salawat).every(s => s >= 50),
+            dhikr: this.data.today.dhikr.morning >= 11 && this.data.today.dhikr.evening >= 11,
+            ayah: this.data.today.protectionAyah.fajr >= 3 && this.data.today.protectionAyah.maghrib >= 3,
+            ratib: this.data.today.ratib,
+            quran: (this.data.today.quranPages || 0) >= 7,
+            kahf: new Date(this.data.today.date).getDay() === 5 ? this.data.today.surahKahf : true
+        };
+
         // Avoid duplicate dates if reset manually multiple times
         const lastEntry = this.data.stats.history[this.data.stats.history.length - 1];
         if (lastEntry && lastEntry.date === this.data.today.date) {
             lastEntry.percent = percent;
+            lastEntry.tasks = tasks;
         } else {
             this.data.stats.history.push({
                 date: this.data.today.date,
-                percent: percent
+                percent: percent,
+                tasks: tasks
             });
         }
 
