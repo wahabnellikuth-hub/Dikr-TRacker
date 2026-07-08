@@ -1030,7 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const formatName = name => name.charAt(0).toUpperCase() + name.slice(1);
 
-            let topPrayer = '--';
+            let topPrayer = 'Needs more data';
             if (totalDaysWithDetailedData > 0) {
                 let maxPrayerCount = -1;
                 let maxPrayerName = '';
@@ -1047,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            let topSalawat = '--';
+            let topSalawat = 'Needs more data';
             if (totalDaysWithDetailedData > 0) {
                 let maxSalawatCount = -1;
                 let maxSalawatName = '';
@@ -1064,7 +1064,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            let mostSkipped = '--';
+            let mostSkipped = 'Needs more data';
             if (totalDaysWithTaskData > 0) {
                 let maxSkippedCount = -1;
                 let maxSkippedName = '';
