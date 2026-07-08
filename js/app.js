@@ -886,6 +886,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const taskCounts = {};
             let totalTasksCompleted = 0;
+            const allTasks = ['prayers', 'salawat', 'dhikr', 'ayah', 'badr', 'ratib', 'quran', 'kahf'];
             
             history.forEach(entry => {
                 if (entry.tasks) {
@@ -896,10 +897,20 @@ document.addEventListener('DOMContentLoaded', () => {
                             totalTasksCompleted++;
                         }
                     });
+                } else if (entry.percent !== undefined) {
+                    // Fallback for old data: extrapolate tasks from the daily percentage completion
+                    const multiplier = entry.percent / 100;
+                    if (multiplier > 0) {
+                        allTasks.forEach(taskName => {
+                            if (!taskCounts[taskName]) taskCounts[taskName] = 0;
+                            taskCounts[taskName] += multiplier;
+                            totalTasksCompleted += multiplier;
+                        });
+                    }
                 }
             });
             
-            document.getElementById('pie-chart-total').textContent = totalTasksCompleted;
+            document.getElementById('pie-chart-total').textContent = Math.round(totalTasksCompleted);
             
             const colors = {
                 prayers: '#4ade80',
@@ -941,7 +952,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     legendItem.innerHTML = `
                         <div class="legend-color-box" style="background: ${color};"></div>
                         <span class="legend-label">${formatName(taskName)}</span>
-                        <span class="legend-value">${count}</span>
+                        <span class="legend-value">${Math.round(count)}</span>
                         <span class="legend-percent">${Math.round(percent)}%</span>
                     `;
                     legendContainer.appendChild(legendItem);
