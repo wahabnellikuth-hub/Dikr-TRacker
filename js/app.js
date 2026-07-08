@@ -960,6 +960,134 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             
             document.getElementById('pie-chart').style.background = `conic-gradient(${gradientStops.join(', ')})`;
+            
+            // --- Detailed Insights ---
+            const detailedPrayerCounts = {};
+            const detailedSalawatCounts = {};
+            const skippedCounts = {}; // Track skipped
+            let totalDaysWithDetailedData = 0;
+            let totalDaysWithTaskData = 0;
+
+            const historyAndToday = [...history];
+            // Include today's data so new users see insights immediately
+            const todayDetailed = {
+                prayers: JSON.parse(JSON.stringify(window.store.data.today.prayers)),
+                salawat: JSON.parse(JSON.stringify(window.store.data.today.salawat)),
+                dhikr: JSON.parse(JSON.stringify(window.store.data.today.dhikr)),
+                ayah: JSON.parse(JSON.stringify(window.store.data.today.protectionAyah)),
+                badr: window.store.data.today.asmaulBadr,
+                ratib: window.store.data.today.ratib,
+                quran: window.store.data.today.quranPages,
+                kahf: window.store.data.today.surahKahf
+            };
+            
+            const todayTasks = {
+                prayers: Object.values(window.store.data.today.prayers).every(p => p.completed),
+                badr: window.store.data.today.asmaulBadr,
+                salawat: Object.values(window.store.data.today.salawat).every(s => s >= 50),
+                dhikr: window.store.data.today.dhikr.morning >= 11 && window.store.data.today.dhikr.evening >= 11,
+                ayah: window.store.data.today.protectionAyah.fajr >= 3 && window.store.data.today.protectionAyah.maghrib >= 3,
+                ratib: window.store.data.today.ratib,
+                quran: (window.store.data.today.quranPages || 0) >= 7,
+                kahf: new Date(window.store.data.today.date).getDay() === 5 ? window.store.data.today.surahKahf : true
+            };
+            
+            historyAndToday.push({
+                tasks: todayTasks,
+                detailedTasks: todayDetailed
+            });
+
+            historyAndToday.forEach(entry => {
+                if (entry.tasks) {
+                    totalDaysWithTaskData++;
+                    // Calculate skipped (explicitly ignoring 'kahf' per user request)
+                    Object.keys(entry.tasks).forEach(taskName => {
+                        if (taskName !== 'kahf') {
+                            if (!skippedCounts[taskName]) skippedCounts[taskName] = 0;
+                            if (!entry.tasks[taskName]) skippedCounts[taskName]++;
+                        }
+                    });
+                }
+                if (entry.detailedTasks) {
+                    totalDaysWithDetailedData++;
+                    
+                    if (entry.detailedTasks.prayers) {
+                        Object.keys(entry.detailedTasks.prayers).forEach(pName => {
+                            if (!detailedPrayerCounts[pName]) detailedPrayerCounts[pName] = { comp: 0, jam: 0 };
+                            if (entry.detailedTasks.prayers[pName].completed) detailedPrayerCounts[pName].comp++;
+                            if (entry.detailedTasks.prayers[pName].jamaah) detailedPrayerCounts[pName].jam++;
+                        });
+                    }
+                    
+                    if (entry.detailedTasks.salawat) {
+                        Object.keys(entry.detailedTasks.salawat).forEach(sName => {
+                            if (!detailedSalawatCounts[sName]) detailedSalawatCounts[sName] = 0;
+                            detailedSalawatCounts[sName] += entry.detailedTasks.salawat[sName];
+                        });
+                    }
+                }
+            });
+
+            const formatName = name => name.charAt(0).toUpperCase() + name.slice(1);
+
+            let topPrayer = '--';
+            if (totalDaysWithDetailedData > 0) {
+                let maxPrayerCount = -1;
+                let maxPrayerName = '';
+                let jamCount = 0;
+                Object.keys(detailedPrayerCounts).forEach(pName => {
+                    if (detailedPrayerCounts[pName].comp > maxPrayerCount) {
+                        maxPrayerCount = detailedPrayerCounts[pName].comp;
+                        maxPrayerName = pName;
+                        jamCount = detailedPrayerCounts[pName].jam;
+                    }
+                });
+                if (maxPrayerCount > 0) {
+                    topPrayer = `${formatName(maxPrayerName)} (${jamCount} Jama'ah)`;
+                }
+            }
+
+            let topSalawat = '--';
+            if (totalDaysWithDetailedData > 0) {
+                let maxSalawatCount = -1;
+                let maxSalawatName = '';
+                Object.keys(detailedSalawatCounts).forEach(sName => {
+                    if (detailedSalawatCounts[sName] > maxSalawatCount) {
+                        maxSalawatCount = detailedSalawatCounts[sName];
+                        maxSalawatName = sName;
+                    }
+                });
+                if (maxSalawatCount > 0) {
+                    // special format for salawat ibrahimiyyah as it's long
+                    const shortName = maxSalawatName === 'ibrahimiyyah' ? 'Ibrahimiyyah' : formatName(maxSalawatName);
+                    topSalawat = `${shortName} (${maxSalawatCount})`;
+                }
+            }
+
+            let mostSkipped = '--';
+            if (totalDaysWithTaskData > 0) {
+                let maxSkippedCount = -1;
+                let maxSkippedName = '';
+                Object.keys(skippedCounts).forEach(taskName => {
+                    if (skippedCounts[taskName] > maxSkippedCount) {
+                        maxSkippedCount = skippedCounts[taskName];
+                        maxSkippedName = taskName;
+                    }
+                });
+                if (maxSkippedCount > 0) {
+                    mostSkipped = formatName(maxSkippedName);
+                } else {
+                    mostSkipped = 'None! Perfect!';
+                }
+            }
+
+            const elTopPrayer = document.getElementById('insight-top-prayer');
+            const elTopSalawat = document.getElementById('insight-top-salawat');
+            const elMostSkipped = document.getElementById('insight-most-skipped');
+            
+            if(elTopPrayer) elTopPrayer.textContent = topPrayer;
+            if(elTopSalawat) elTopSalawat.textContent = topSalawat;
+            if(elMostSkipped) elMostSkipped.textContent = mostSkipped;
         });
         
         btnCloseAnalysis.addEventListener('click', () => {

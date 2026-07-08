@@ -189,17 +189,30 @@ class Store {
             quran: (this.data.today.quranPages || 0) >= 7,
             kahf: new Date(this.data.today.date).getDay() === 5 ? this.data.today.surahKahf : true
         };
+        
+        const detailedTasks = {
+            prayers: JSON.parse(JSON.stringify(this.data.today.prayers)),
+            salawat: JSON.parse(JSON.stringify(this.data.today.salawat)),
+            dhikr: JSON.parse(JSON.stringify(this.data.today.dhikr)),
+            ayah: JSON.parse(JSON.stringify(this.data.today.protectionAyah)),
+            badr: this.data.today.asmaulBadr,
+            ratib: this.data.today.ratib,
+            quran: this.data.today.quranPages,
+            kahf: this.data.today.surahKahf
+        };
 
         // Avoid duplicate dates if reset manually multiple times
         const lastEntry = this.data.stats.history[this.data.stats.history.length - 1];
         if (lastEntry && lastEntry.date === this.data.today.date) {
             lastEntry.percent = percent;
             lastEntry.tasks = tasks;
+            lastEntry.detailedTasks = detailedTasks;
         } else {
             this.data.stats.history.push({
                 date: this.data.today.date,
                 percent: percent,
-                tasks: tasks
+                tasks: tasks,
+                detailedTasks: detailedTasks
             });
         }
 

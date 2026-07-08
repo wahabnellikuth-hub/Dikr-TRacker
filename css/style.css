@@ -671,6 +671,32 @@ body {
     box-shadow: 0 4px 10px rgba(0,0,0,0.1);
 }
 
+.insight-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.03);
+    padding: 0.75rem 1rem;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border);
+}
+
+[data-theme="dark"] .insight-card {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.insight-label {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.insight-value {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text);
+}
+
 .legend-item {
     display: flex;
     justify-content: space-between;
